@@ -80,8 +80,7 @@ if __name__ == '__main__':
             # GROUP MESSAGE
             elif rev["message_type"] == "group":
                 group = rev['group_id']
-                # if "[CQ:at,qq=2585899559]" in rev["raw_message"]:
-                if "[CQ:at,qq=3292297816]" in rev["raw_message"]:
+                if "[CQ:at,qq=2585899559]" in rev["raw_message"]:
                     qq = rev['sender']['user_id']
                     # split the message by spaces
                     message_parts = rev["raw_message"].split(' ')
