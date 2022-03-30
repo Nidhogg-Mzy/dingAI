@@ -97,14 +97,14 @@ if __name__ == '__main__':
                             res = leetcode.check_finish_problem('binary-search')
                     # check if already completed
                     elif rev['raw_message'].split(' ')[1] == 'check':
-                        send_msg({'msg_type': 'group', 'number': group, 'msg': 'testing today'})
                         # if user name is not provided
                         if len(rev['raw_message'].split(' ')) < 3:
                             send_msg({'msg_type': 'group', 'number': group, 'msg': '请提供LeetCode账户名'})
                         # get user name from user input
                         else:
                             username = rev['raw_message'].split(' ')[2]
-                            leetcode = Leetcode.leetcode(username)
+                            print(username)
+                            leetcode = Leetcode.Leetcode(username)
                             res = leetcode.check_finish_problem('binary-search')
                             if not res:
                                 send_msg({'msg_type': 'group', 'number': group, 'msg': '你怎么没写完啊？坏孩子！'})
