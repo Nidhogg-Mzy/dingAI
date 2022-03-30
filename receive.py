@@ -2,6 +2,7 @@ import socket
 import json
 import random
 import Leetcode
+import Question
 
 ListenSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 ListenSocket.bind(('127.0.0.1', 5701))
@@ -54,63 +55,78 @@ def rev_msg():  # json or None
     return rev_json
 
 
+def rev_private_msg(rev):
+    if rev['raw_message'] == '在吗':
+        qq = rev['sender']['user_id']
+        randomnum1 = random.randint(0, 3)
+        if randomnum1 == 0:
+            send_msg({'msg_type': 'private', 'number': qq, 'msg': '在的呀小可爱'})
+        elif randomnum1 == 1:
+            send_msg({'msg_type': 'private', 'number': qq, 'msg': '一直在的呀'})
+        else:
+            send_msg({'msg_type': 'private', 'number': qq, 'msg': '呜呜呜找人家什么事嘛'})
+    if rev['raw_message'] == '你在哪':
+        qq = rev['sender']['user_id']
+        send_msg({'msg_type': 'private', 'number': qq, 'msg': '我无处不在'})
+    else:
+        qq = rev['sender']['user_id']
+        send_msg({'msg_type': 'private', 'number': qq, 'msg': rev['raw_message']})
+
+
+def rev_group_msg(rev):
+    group = rev['group_id']
+    if "[CQ:at,qq=2585899559]" in rev["raw_message"]:
+        if rev['raw_message'].split(' ')[1] == '在吗':
+            index = random.randint(0, 3)
+            if index == 0:
+                send_msg({'msg_type': 'group', 'number': group, 'msg': '在的呀小可爱'})
+            elif index == 1:
+                send_msg({'msg_type': 'group', 'number': group, 'msg': '一直在的呀'})
+            else:
+                send_msg({'msg_type': 'group', 'number': group, 'msg': '呜呜呜找人家什么事嘛'})
+            # send_msg({'msg_type': 'group', 'number': group, 'msg': '[CQ:poke,qq={}]'.format(qq)})
+        elif rev['raw_message'].split(' ')[1] == '题来':
+            question = Question.Question("2022/03/01", "1. 两数之和", "two_sum", "https://....", "简单", "哈希表，二分查找",
+                                         {"enor2017": "Accepted", "nidhogg_mzy": ""})
+            send_msg({'msg_type': 'group', 'number': group, 'msg': question.toString()})
+        # code for daily sign
+        elif rev['raw_message'].split(' ')[1] == 'today':
+            send_msg({'msg_type': 'group', 'number': group, 'msg': 'testing today'})
+            # if user name is not provided
+            if len(rev['raw_message'].split(' ')) < 3:
+                send_msg({'msg_type': 'group', 'number': group, 'msg': '请提供LeetCode账户名'})
+            # get user name from user input
+            else:
+                username = rev['raw_message'].split(' ')[2]
+                leetcode = Leetcode.leetcode(username)
+        # check if already completed
+        elif rev['raw_message'].split(' ')[1] == 'check':
+            # if user name is not provided
+            if len(rev['raw_message'].split(' ')) < 3:
+                send_msg({'msg_type': 'group', 'number': group, 'msg': '请提供LeetCode账户名'})
+            # get user name from user input
+            else:
+                username = rev['raw_message'].split(' ')[2]
+                print(username)
+                leetcode = Leetcode.Leetcode(username)
+                res = leetcode.check_finish_problem('binary-search')
+                if not res:
+                    send_msg({'msg_type': 'group', 'number': group, 'msg': '你怎么没写完啊？坏孩子！'})
+                else:
+                    send_msg({'msg_type': 'group', 'number': group, 'msg': f'You have passed this problem '
+                                                                           f'in the following languages: {res}'})
+
+
 if __name__ == '__main__':
     while True:
-        rev = rev_msg()
-        if rev["post_type"] == "message":
+        received = rev_msg()
+        if received["post_type"] == "message":
             # PRIVATE MESSAGE
-            if rev["message_type"] == "private":
-                if rev['raw_message'] == '在吗':
-                    qq = rev['sender']['user_id']
-                    randomnum1 = random.randint(0, 3)
-                    if randomnum1 == 0:
-                        send_msg({'msg_type': 'private', 'number': qq, 'msg': '在的呀小可爱'})
-                    elif randomnum1 == 1:
-                        send_msg({'msg_type': 'private', 'number': qq, 'msg': '一直在的呀'})
-                    else:
-                        send_msg({'msg_type': 'private', 'number': qq, 'msg': '呜呜呜找人家什么事嘛'})
-                if rev['raw_message'] == '你在哪':
-                    qq = rev['sender']['user_id']
-                    send_msg({'msg_type': 'private', 'number': qq, 'msg': '我无处不在'})
-                else:
-                    qq = rev['sender']['user_id']
-                    send_msg({'msg_type': 'private', 'number': qq, 'msg': rev['raw_message']})
-
+            if received["message_type"] == "private":
+                rev_private_msg(received)
             # GROUP MESSAGE
-            elif rev["message_type"] == "group":
-                group = rev['group_id']
-                if "[CQ:at,qq=2585899559]" in rev["raw_message"]:
-                    qq = rev['sender']['user_id']
-                    if rev['raw_message'].split(' ')[1] == '在吗':
-                        send_msg({'msg_type': 'group', 'number': group, 'msg': '我在'})
-                        # send_msg({'msg_type': 'group', 'number': group, 'msg': '[CQ:poke,qq={}]'.format(qq)})
-                    # code for daily sign
-                    elif rev['raw_message'].split(' ')[1] == 'today':
-                        send_msg({'msg_type': 'group', 'number': group, 'msg': 'testing today'})
-                        # if user name is not provided
-                        if len(rev['raw_message'].split(' ')) < 3:
-                            send_msg({'msg_type': 'group', 'number': group, 'msg': '请提供LeetCode账户名'})
-                        # get user name from user input
-                        else:
-                            username = rev['raw_message'].split(' ')[2]
-                            leetcode = Leetcode.leetcode(username)
-                            res = leetcode.check_finish_problem('binary-search')
-                    # check if already completed
-                    elif rev['raw_message'].split(' ')[1] == 'check':
-                        # if user name is not provided
-                        if len(rev['raw_message'].split(' ')) < 3:
-                            send_msg({'msg_type': 'group', 'number': group, 'msg': '请提供LeetCode账户名'})
-                        # get user name from user input
-                        else:
-                            username = rev['raw_message'].split(' ')[2]
-                            print(username)
-                            leetcode = Leetcode.Leetcode(username)
-                            res = leetcode.check_finish_problem('binary-search')
-                            if not res:
-                                send_msg({'msg_type': 'group', 'number': group, 'msg': '你怎么没写完啊？坏孩子！'})
-                            else:
-                                send_msg({'msg_type': 'group', 'number': group, 'msg': f'You have passed this problem '
-                                                                                f'in the following languages: {res}'})
+            elif received["message_type"] == "group":
+                rev_group_msg(received)
             else:
                 continue
         else:  # rev["post_type"]=="meta_event":
