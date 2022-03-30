@@ -20,7 +20,7 @@ all Questions should appear like :
 
 class Question:
     def __init__(self, problem_date: str, problem_name: str, problem_id: str, problem_link: str,
-                 problem_diifficulty: str, problem_description: str, participants: list):
+                 problem_diifficulty: str, problem_description: str, participants: dict):
         self.date = problem_date
         self.name = problem_name
         self.id = problem_id
@@ -47,18 +47,16 @@ class Question:
     def getDescription(self) -> str:
         return self.description
 
-    def getParticipants(self) -> list:
+    def getParticipants(self) -> dict:
         return self.participants
 
     def toString(self) -> str:
-        var = self.date + ": {\n" + "\"problem_name\" : \"" + self.name + "\",\n" + \
-                 "\"problem_id\" : \"" + self.id + "\",\n" + \
-                 "\"problem_link\" : \"" + self.link + "\",\n" + \
-                 "\"problem_difficulty\" : \"" + self.difficulty + "\",\n" + \
-                 "\"problem_description\" : \"" + self.description + "\",\n" + \
-                 "\"participants\" : {\n"
-        for i in range(self.participants.size()):
-            var += self.participants[i]
-        result = var + "\n}" + "\n}"
+        result = self.date + ":\n" + "今日题目 : " + self.name + "\n" + \
+                 "题目链接 : " + self.link + "\n" + \
+                 "难度 : " + self.difficulty + "\n" + \
+                 "标签 : " + self.description + "\n" + \
+                 "做题的小可爱 : "
+        for i in self.participants.keys():
+            if self.participants[i] == "Accepted":
+                result += i + ""
         return result
-
