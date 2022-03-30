@@ -77,7 +77,9 @@ def rev_private_msg(rev):
 def rev_group_msg(rev):
     group = rev['group_id']
     if "[CQ:at,qq=2585899559]" in rev["raw_message"]:
-        if rev['raw_message'].split(' ')[1] == '在吗':
+        qq = rev['sender']['user_id']
+        message_parts = rev['raw_message'].split(' ')
+        if message_parts[1] == '在吗':
             index = random.randint(0, 3)
             if index == 0:
                 send_msg({'msg_type': 'group', 'number': group, 'msg': '在的呀小可爱'})
@@ -86,7 +88,7 @@ def rev_group_msg(rev):
             else:
                 send_msg({'msg_type': 'group', 'number': group, 'msg': '呜呜呜找人家什么事嘛'})
             # send_msg({'msg_type': 'group', 'number': group, 'msg': '[CQ:poke,qq={}]'.format(qq)})
-        elif rev['raw_message'].split(' ')[1] == '题来':
+        elif message_parts[1] == '题来':
             question = Question.Question("2022/03/01", "1. 两数之和", "two_sum", "https://....", "简单", "哈希表，二分查找",
                                          {"enor2017": "Accepted", "nidhogg_mzy": ""})
             send_msg({'msg_type': 'group', 'number': group, 'msg': question.toString()})
@@ -99,7 +101,7 @@ def rev_group_msg(rev):
                 if not status_:
                     send_msg({'msg_type': 'group', 'number': group, 'msg':
                         '我还不知道您的LeetCode账户名哦，试试 register <your leetcode username>, 或者在today 后面加上你要查找的用户名哦!'})
-                    continue
+                    return
                 username = username_
             # otherwise, we should get user name from user input
             else:
@@ -116,7 +118,7 @@ def rev_group_msg(rev):
                 if not status_:
                     send_msg({'msg_type': 'group', 'number': group, 'msg':
                         '我还不知道您的LeetCode账户名哦，试试 register <your leetcode username>, 或者在check 后面加上你要查找的用户名哦!'})
-                    continue
+                    return
                 username = username_
             # otherwise, we should get user name from user input
             else:
@@ -142,9 +144,6 @@ def rev_group_msg(rev):
         elif message_parts[1] == 'username':
             user_op = UserOperation()
             status_, username_ = user_op.get_leetcode(str(qq))
-            print(user_op.user_list)
-            print(qq)
-            print(username_)
             if not status_:
                 send_msg({'msg_type': 'group', 'number': group,
                           'msg': '我还不知道您的LeetCode用户名诶，要不要试试 register <your leetcode username>'})
