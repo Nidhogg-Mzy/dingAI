@@ -32,7 +32,7 @@ class UserOperation:
                  Second item is a string, if successful, it indicates the result message, e.g., "Successfully registered.",
                  otherwise, it stores the error message
         """
-        if qq in self.user_list:
+        if qq in self.user_list.keys():
             old_leetcode = self.user_list[qq]
             self.user_list[qq] = leetcode
             try:
@@ -50,17 +50,18 @@ class UserOperation:
             else:
                 return True, f"Successfully set your leetcode username to {leetcode}."
 
-    def get_leetcode(self, qq: str) -> str:
+    def get_leetcode(self, qq: str) -> tuple[bool, str]:
         """
         Given qq account, return the user's leetcode username.
-        Raise exception if the user is not registered.
         :param qq: qq account
-        :return: leetcode username
+        :return: A tuple, first item is a boolean, indicating the operation is successful or not,
+        currently the operation will fail only if the user has not registered.
+        If first item is True, then second item is a string, representing the user's leetcode username
         """
         if qq not in self.user_list.keys():
-            raise KeyError(f"User {qq} is not registered.")
+            return False, "Error: User not registered."
         else:
-            return self.user_list[qq]
+            return True, self.user_list[qq]
 
 
 if __name__ == "__main__":
@@ -70,17 +71,23 @@ if __name__ == "__main__":
     res, msg = user_operation.register("123456789", "testing")
     print(f"result: {res}, message: {msg}")
 
-    # this function may raise KeyError when user not exist
-    try:
-        leetcode_username = user_operation.get_leetcode("12")
-    except KeyError:
+    # this function returns false when user does not exist
+    status, username = user_operation.get_leetcode("12")
+    if not status:
         print("User is not registered.")
     else:
-        print(f"username: {leetcode_username}")
+        print(f"username: {username}")
 
-    try:
-        leetcode_username = user_operation.get_leetcode("123456789")
-    except KeyError:
+    status, username = user_operation.get_leetcode("123456789")
+    if not status:
         print("User is not registered.")
     else:
-        print(f"username: {leetcode_username}")
+        print(f"username: {username}")
+
+    status, msg = user_operation.register("2220038250", "enor2017")
+    print(f"result: {status}, message: {msg}")
+    status, username = user_operation.get_leetcode("2220038250")
+    if not status:
+        print("User is not registered.")
+    else:
+        print(f"username: {username}")
