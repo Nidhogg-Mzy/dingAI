@@ -28,7 +28,8 @@ class Leetcode:
         # The webpage got from requests is not complete
         # use a headless-chrome as webdriver
         options = webdriver.ChromeOptions()
-        options.add_argument('headless')
+        options.add_argument('--no-sandbox')    # fix problems on non-graphics ubuntu server
+        options.add_argument('--headless')
         driver = webdriver.Chrome('./chromedriver', options=options)
         driver.get(url)
         page = driver.page_source.encode('utf-8')
