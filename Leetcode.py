@@ -26,7 +26,11 @@ class Leetcode:
 
         # we need to use web-driver to open the webpage
         # The webpage got from requests is not complete
-        driver = webdriver.Safari()
+        # use a headless-chrome as webdriver
+        options = webdriver.ChromeOptions()
+        options.add_argument('--no-sandbox')    # fix problems on non-graphics ubuntu server
+        options.add_argument('--headless')
+        driver = webdriver.Chrome('./chromedriver', options=options)
         driver.get(url)
         page = driver.page_source.encode('utf-8')
         soup = BeautifulSoup(page, 'html.parser')
