@@ -1,0 +1,26 @@
+[
+  {
+    "title": "COMP2012 PA2",
+    "date": "2022-04-02",
+    "participants": ["2220038250", "12345678"],
+    "description": "Due at 23:59 PM."
+  },
+  {
+    "title": "COMP3311 Exercise 7",
+    "date": "2022-04-01",
+    "participants": ["2220038250", "3429582673"],
+    "description": "N/A"
+  },
+  {
+    "title": "COMP3311 Assignment 3",
+    "date": "2022-04-08",
+    "participants": ["2220038250", "3429582673"],
+    "description": "N/A"
+  },
+  {
+    "title": "COMP2211 Midterm Exam",
+    "date": "2022-04-02",
+    "participants": ["2220038250", "3429582673"],
+    "description": "2PM - 4PM. Join at 1PM for attendance checking.\nZoom link: https://course.cse.ust.hk/comp2211/midterm-zoom-meeting.html"
+  }
+]

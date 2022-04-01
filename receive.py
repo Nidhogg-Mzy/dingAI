@@ -4,6 +4,7 @@ import random
 import Leetcode
 from UserOperation import UserOperation
 import Question
+from DDLService import DDLService
 
 ListenSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 ListenSocket.bind(('127.0.0.1', 5701))
@@ -76,7 +77,8 @@ def rev_private_msg(rev):
 
 def rev_group_msg(rev):
     group = rev['group_id']
-    if "[CQ:at,qq=2585899559]" in rev["raw_message"]:
+    # if "[CQ:at,qq=2585899559]" in rev["raw_message"]:
+    if "[CQ:at,qq=3292297816]" in rev["raw_message"]:
         qq = rev['sender']['user_id']
         message_parts = rev['raw_message'].split(' ')
         if message_parts[1] == '在吗':
@@ -150,6 +152,11 @@ def rev_group_msg(rev):
             else:
                 send_msg({'msg_type': 'group', 'number': group,
                           'msg': f'您已绑定LeetCode的用户名是: {username_}'})
+        # DDL Service
+        elif message_parts[1] == 'ddl':
+            service = DDLService()
+            send_msg({'msg_type': 'group', 'number': group,
+                      'msg': f"[CQ:at,qq={qq}]\n" + service.process_query(message_parts[1:], qq)})
 
 
 if __name__ == '__main__':
