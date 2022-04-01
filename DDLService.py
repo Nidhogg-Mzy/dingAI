@@ -72,6 +72,9 @@ class DDLService:
         if (ddl_list is None) or (not ddl_list):
             return "Hooray! You have no ddl."
 
+        # The ddl in json is not sorted. We want to output them from the earliest to the latest.
+        ddl_list.sort(key=lambda ddl: ddl["date"])
+
         result = ""
         for ddl in ddl_list:
             result += DDLService.prettify_ddl(ddl, fancy) + "\n"
