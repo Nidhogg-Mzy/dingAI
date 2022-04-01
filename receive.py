@@ -77,8 +77,8 @@ def rev_private_msg(rev):
 
 def rev_group_msg(rev):
     group = rev['group_id']
-    # if "[CQ:at,qq=2585899559]" in rev["raw_message"]:
-    if "[CQ:at,qq=3292297816]" in rev["raw_message"]:
+    if "[CQ:at,qq=2585899559]" in rev["raw_message"]:
+        # if "[CQ:at,qq=3292297816]" in rev["raw_message"]:
         qq = rev['sender']['user_id']
         message_parts = rev['raw_message'].split(' ')
         if message_parts[1] == '在吗':
