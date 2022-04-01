@@ -106,8 +106,6 @@ def rev_group_msg(rev):
             # otherwise, we should get user name from user input
             else:
                 username = rev['raw_message'].split(' ')[2]
-            leetcode = Leetcode.Leetcode(username)
-            res = leetcode.check_finish_problem('binary-search')
             # TODO: this is not complete, no message reply
         # check if today's problem has already completed
         elif message_parts[1] == 'check':
@@ -129,7 +127,7 @@ def rev_group_msg(rev):
                 send_msg({'msg_type': 'group', 'number': group, 'msg': '你怎么没写完啊？坏孩子！'})
             else:
                 send_msg({'msg_type': 'group', 'number': group, 'msg': f'You have passed this problem '
-                                                                f'in the following languages: {res}'})
+                                                                       f'in the following languages: {res}'})
         # register: match the qq account with leetcode username,
         # so user don't need to provide username when query
         elif message_parts[1] == 'register':
@@ -162,4 +160,3 @@ if __name__ == '__main__':
             # GROUP MESSAGE
             elif received["message_type"] == "group":
                 rev_group_msg(received)
-
