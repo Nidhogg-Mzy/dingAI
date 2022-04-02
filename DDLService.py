@@ -11,7 +11,7 @@ A ddl in json looks like:
     "title": "COMP2211 Midterm Exam",
     "date": "2022-04-02",
     "participants": ["2220038250", "3429582673"],
-    "description": "2PM - 4PM. Join at 1PM for attendance checking.\nZoom link: https://course.cse.ust.hk/comp2211/midterm-zoom-meeting.html"
+    "description": "2PM - 4PM. Join at 1PM for attendance checking."
   }
 ]
 """
@@ -57,9 +57,9 @@ class DDLService:
             at_participant_user += f"[CQ:at,qq={participant}] "
 
         return ("===============\n" if fancy else "") + \
-               f"日期: {ddl['date']}, 标题: {ddl['title']}\n" + \
-               f"参与者: {at_participant_user}\n" + \
-               f"备注: {ddl['description']}"
+            f"日期: {ddl['date']}, 标题: {ddl['title']}\n" + \
+            f"参与者: {at_participant_user}\n" + \
+            f"备注: {ddl['description']}"
 
     @staticmethod
     def prettify_ddl_list(ddl_list: list, fancy=True) -> str:
@@ -73,7 +73,7 @@ class DDLService:
             return "Hooray! You have no ddl."
 
         # The ddl in json is not sorted. We want to output them from the earliest to the latest.
-        ddl_list.sort(key=lambda ddl: ddl["date"])
+        ddl_list.sort(key=lambda ddl_: ddl_["date"])
 
         result = ""
         for ddl in ddl_list:
@@ -144,51 +144,28 @@ class DDLService:
             try:
                 res = json.loads(ddl_info)
             except json.JSONDecodeError:
-                return "[Error] Invalid syntax. Use \"ddl insert\" to check usage."
-            currDate = res["date"]
-            participantsBefore = res["participants"]
-            parts = participantsBefore.split(' ')
-            participantsAfter = []
+                return "[CQ:at,qq={user_qq}] [Error] Invalid syntax. Use \"ddl insert\" to check usage."
+            curr_date = res["date"]
+            participants_before = res["participants"]
+            parts = participants_before.split(' ')
+            participants_after = []
             for part in parts:
                 if len(part) < 5:
                     continue
-                match = re.findall(r"^\[CQ:at,qq=(\d*)\]$", part)
-                participantsAfter.append(match[0])
-            if not participantsAfter:
-                return "[Error] Invalid Participants."
-            res["participants"] = participantsAfter
-            if re.search(r"^\d{4}-\d{2}-\d{2}$", currDate):
+                match = re.findall(r"^\[CQ:at,qq=(\d*)]$", part)
+                participants_after.append(match[0])
+            if not participants_after:
+                return "[CQ:at,qq={user_qq}]\n[Error] Invalid Participants."
+            res["participants"] = participants_after
+            if re.search(r"^\d{4}-\d{2}-\d{2}$", curr_date):
                 self.ddl_list.append(res)
                 with open(self.filename, 'w') as f:
                     json.dump(self.ddl_list, f, indent=4, separators=(',', ': '))
-                return 'inserted successfully'
+                return '[CQ:at,qq={user_qq}] Inserted successfully!'
             else:
-                return '[Error] Invalid Date.'
+                return '[CQ:at,qq={user_qq}] [Error] Invalid Date.'
         else:
-            return "[Error] Invalid syntax. Use \"ddl help\" to check usage."
-
-    def add_ddl(self, ddl: dict) -> bool:
-        """
-        Add a ddl to the database
-        :param ddl: a dict that is the ddl to be added
-        :return: True if the ddl is added successfully, False otherwise
-        """
-        if (ddl is None) or (not ddl):
-            return False
-
-        # check if the ddl is valid
-        if not self.is_ddl_valid(ddl):
-            return False
-
-        # check if the ddl already exists
-        if self.get_ddl(lambda d: ddl["date"] == d["date"] and ddl["title"] == d["title"]):
-            return False
-
-        # add the ddl to the database
-        self.ddl_list.append(ddl)
-        self.save_ddl_list()
-
-        return True
+            return "[CQ:at,qq={user_qq}] [Error] Invalid syntax. Use \"ddl help\" to check usage."
 
 
 if __name__ == "__main__":
