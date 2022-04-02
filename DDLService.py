@@ -31,7 +31,7 @@ class DDLService:
         Load ddl list from file, store the result in self.ddl_list
         """
         with open(self.filename, "r") as f:
-            self.ddl_list = json.load(f)   # A list of dict
+            self.ddl_list = json.load(f)  # A list of dict
 
     def get_ddl(self, predicate: lambda ddl: bool) -> list:
         """
@@ -57,9 +57,9 @@ class DDLService:
             at_participant_user += f"[CQ:at,qq={participant}] "
 
         return ("===============\n" if fancy else "") + \
-            f"日期: {ddl['date']}, 标题: {ddl['title']}\n" + \
-            f"参与者: {at_participant_user}\n" + \
-            f"备注: {ddl['description']}"
+               f"日期: {ddl['date']}, 标题: {ddl['title']}\n" + \
+               f"参与者: {at_participant_user}\n" + \
+               f"备注: {ddl['description']}"
 
     @staticmethod
     def prettify_ddl_list(ddl_list: list, fancy=True) -> str:
@@ -97,37 +97,95 @@ class DDLService:
         q_type = query[1]  # query type
         if q_type == "today":
             return "ddl due today: \n" + \
-                DDLService.prettify_ddl_list(self.get_ddl(lambda ddl: ddl["date"] == str(datetime.date.today())))
+                   DDLService.prettify_ddl_list(self.get_ddl(lambda ddl: ddl["date"] == str(datetime.date.today())))
         elif q_type == "tomorrow" or q_type == "tmr":
             return "ddl due tomorrow: \n" + \
-                DDLService.prettify_ddl_list(self.get_ddl(lambda ddl: ddl["date"] == str(datetime.date.today() + datetime.timedelta(days=1))))
+                   DDLService.prettify_ddl_list(
+                       self.get_ddl(lambda ddl: ddl["date"] == str(datetime.date.today() + datetime.timedelta(days=1))))
         # search ddl for next week
         elif q_type == "week":
             return "ddl due in a week: \n" + \
-                DDLService.prettify_ddl_list(self.get_ddl(lambda ddl: ddl["date"] <= str(datetime.date.today() + datetime.timedelta(days=8))))
+                   DDLService.prettify_ddl_list(
+                       self.get_ddl(lambda ddl: ddl["date"] <= str(datetime.date.today() + datetime.timedelta(days=8))))
         # else if the q_type is a date
         elif re.search(r"^\d{4}-\d{2}-\d{2}$", q_type):
             return "ddl due on " + q_type + ": \n" + \
-                DDLService.prettify_ddl_list(self.get_ddl(
-                    lambda ddl: ddl["date"] == str(datetime.datetime.strptime(q_type, "%Y-%m-%d").date()))
-                )
+                   DDLService.prettify_ddl_list(self.get_ddl(
+                       lambda ddl: ddl["date"] == str(datetime.datetime.strptime(q_type, "%Y-%m-%d").date()))
+                   )
         # search ddl for the user performed query
         elif q_type == "my":
             return f"ddl due in a week for [CQ:at,qq={user_qq}]: \n" + \
-                DDLService.prettify_ddl_list(self.get_ddl(
-                    lambda ddl: (str(user_qq) in ddl["participants"]) and
-                                (ddl["date"] <= str(datetime.date.today() + datetime.timedelta(days=8))))
-                )
+                   DDLService.prettify_ddl_list(self.get_ddl(
+                       lambda ddl: (str(user_qq) in ddl["participants"]) and
+                                   (ddl["date"] <= str(datetime.date.today() + datetime.timedelta(days=8))))
+                   )
         # syntax help
         elif q_type == "help":
             return "[ddl today]: show ddl due today\n" + \
-                "[ddl tomorrow][ddl tmr]: show ddl due tomorrow\n" + \
-                "[ddl week]: show ddl due in a week\n" + \
-                "[ddl <date>]: show ddl due on a certain date (format: \"yyyy-mm-dd\")\n" + \
-                "[ddl my]: show ddl due in a week for you\n" + \
-                "[ddl help]: show this help"
+                   "[ddl tomorrow][ddl tmr]: show ddl due tomorrow\n" + \
+                   "[ddl week]: show ddl due in a week\n" + \
+                   "[ddl <date>]: show ddl due on a certain date (format: \"yyyy-mm-dd\")\n" + \
+                   "[ddl my]: show ddl due in a week for you\n" + \
+                   "[ddl insert]: insert a new ddl\n" + \
+                   "[ddl help]: show this help"
+        # insert a new ddl
+        elif q_type == 'insert':
+            if len(query) == 2:
+                return 'ddl insert {"title": "insert your title here", "date": "insert your date here", ' \
+                       '"participants": "at participants", "description": "insert your description here"}'
+            ddl_info = ""
+            for i in range(2, len(query)):
+                ddl_info += query[i] + " "
+            print(ddl_info)
+            try:
+                res = json.loads(ddl_info)
+            except json.JSONDecodeError:
+                return "[Error] Invalid syntax. Use \"ddl insert\" to check usage."
+            currDate = res["date"]
+            participantsBefore = res["participants"]
+            parts = participantsBefore.split(' ')
+            participantsAfter = []
+            for part in parts:
+                if len(part) < 5:
+                    continue
+                match = re.findall(r"^\[CQ:at,qq=(\d*)\]$", part)
+                participantsAfter.append(match[0])
+            if not participantsAfter:
+                return "[Error] Invalid Participants."
+            res["participants"] = participantsAfter
+            if re.search(r"^\d{4}-\d{2}-\d{2}$", currDate):
+                self.ddl_list.append(res)
+                with open(self.filename, 'w') as f:
+                    json.dump(self.ddl_list, f, indent=4, separators=(',', ': '))
+                return 'inserted successfully'
+            else:
+                return '[Error] Invalid Date.'
         else:
             return "[Error] Invalid syntax. Use \"ddl help\" to check usage."
+
+    def add_ddl(self, ddl: dict) -> bool:
+        """
+        Add a ddl to the database
+        :param ddl: a dict that is the ddl to be added
+        :return: True if the ddl is added successfully, False otherwise
+        """
+        if (ddl is None) or (not ddl):
+            return False
+
+        # check if the ddl is valid
+        if not self.is_ddl_valid(ddl):
+            return False
+
+        # check if the ddl already exists
+        if self.get_ddl(lambda d: ddl["date"] == d["date"] and ddl["title"] == d["title"]):
+            return False
+
+        # add the ddl to the database
+        self.ddl_list.append(ddl)
+        self.save_ddl_list()
+
+        return True
 
 
 if __name__ == "__main__":
