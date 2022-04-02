@@ -41,6 +41,21 @@ class DDLService:
         """
         return list(filter(predicate, self.ddl_list))
 
+    def store_ddl(self):
+        """
+        Store the self.ddl_list to file, we don't handle any exception here.
+        """
+        with open(self.filename, "w") as f:
+            json.dump(self.ddl_list, f, indent=4, separators=(',', ': '))
+
+    def remove_expired_ddl(self):
+        """
+        Remove all the expired ddl from self.ddl_list. This should be called periodically to
+        tidy database.
+        """
+        self.ddl_list = list(filter(lambda ddl: ddl['date'] >= str(datetime.date.today()), self.ddl_list))
+        self.store_ddl()
+
     @staticmethod
     def prettify_ddl(ddl: dict, fancy=True) -> str:
         """
@@ -109,7 +124,9 @@ class DDLService:
         elif q_type == "week":
             return "ddl due in a week: \n" + \
                    DDLService.prettify_ddl_list(
-                       self.get_ddl(lambda ddl: ddl["date"] <= str(datetime.date.today() + datetime.timedelta(days=8))))
+                       self.get_ddl(lambda ddl: 
+                                    str(datetime.date.today() + datetime.timedelta(days=8)) >= ddl["date"] >= str(datetime.date.today()))
+                   )
         # else if the q_type is a date
         elif re.search(r"^\d{4}-\d{2}-\d{2}$", q_type):
             return "ddl due on " + q_type + ": \n" + \
@@ -159,8 +176,7 @@ class DDLService:
             res["participants"] = participants_after
             if re.search(r"^\d{4}-\d{2}-\d{2}$", curr_date):
                 self.ddl_list.append(res)
-                with open(self.filename, 'w') as f:
-                    json.dump(self.ddl_list, f, indent=4, separators=(',', ': '))
+                self.store_ddl()
                 return '[CQ:at,qq={user_qq}] Inserted successfully!'
             else:
                 return '[CQ:at,qq={user_qq}] [Error] Invalid Date.'
