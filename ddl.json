@@ -27,6 +27,15 @@
         "description": "N/A"
     },
     {
+        "title": "COMP3311 Exercise 8",
+        "date": "2022-04-08",
+        "participants": [
+            "2220038250",
+            "3429582673"
+        ],
+        "description": "N/A"
+    },
+    {
         "title": "COMP2211 Midterm Exam",
         "date": "2022-04-02",
         "participants": [
@@ -34,6 +43,49 @@
             "3429582673"
         ],
         "description": "2PM - 4PM. Join at 1PM for attendance checking.\nZoom link: https://course.cse.ust.hk/comp2211/midterm-zoom-meeting.html"
+    },
+    {
+        "title": "Hall Application Start",
+        "date": "2022-04-04",
+        "participants": [
+            "2220038250",
+            "3429582673"
+        ],
+        "description": "Start from 8AM. https://www.ab.ust.hk/applyhall\nDue April 14."
+    },
+    {
+        "title": "Hall Application DDL",
+        "date": "2022-04-14",
+        "participants": [
+            "2220038250",
+            "3429582673"
+        ],
+        "description": "Due midnight. https://www.ab.ust.hk/applyhall"
+    },
+    {
+        "title": "ISOM Group project",
+        "date": "2022-04-06",
+        "participants": [
+            "2220038250",
+            "3429582673"
+        ],
+        "description": "Start from 8 PM."
+    },
+    {
+        "title": "Exchange DDL",
+        "date": "2022-04-18",
+        "participants": [
+            "2220038250",
+            "3429582673"
+        ],
+        "description": "N/A"
+    },
+    {
+        "title": "COMP 5111 PA2",
+        "date": "2022-04-21",
+        "participants": [
+            "2220038250"
+        ],
+        "description": "N/A"
     }
-
 ]
