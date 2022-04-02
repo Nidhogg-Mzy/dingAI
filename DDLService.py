@@ -124,7 +124,7 @@ class DDLService:
         elif q_type == "week":
             return "ddl due in a week: \n" + \
                    DDLService.prettify_ddl_list(
-                       self.get_ddl(lambda ddl: 
+                       self.get_ddl(lambda ddl:
                                     str(datetime.date.today() + datetime.timedelta(days=8)) >= ddl["date"] >= str(datetime.date.today()))
                    )
         # else if the q_type is a date
@@ -161,27 +161,22 @@ class DDLService:
             try:
                 res = json.loads(ddl_info)
             except json.JSONDecodeError:
-                return "[CQ:at,qq={user_qq}] [Error] Invalid syntax. Use \"ddl insert\" to check usage."
+                return "[Error] Invalid syntax. Use \"ddl insert\" to check usage."
             curr_date = res["date"]
             participants_before = res["participants"]
-            parts = participants_before.split(' ')
-            participants_after = []
-            for part in parts:
-                if len(part) < 5:
-                    continue
-                match = re.findall(r"^\[CQ:at,qq=(\d*)]$", part)
-                participants_after.append(match[0])
+            # this regex can match all the qq numbers in the string
+            participants_after = re.findall(r"\[CQ:at,qq=(\d*)]", participants_before)
             if not participants_after:
-                return "[CQ:at,qq={user_qq}]\n[Error] Invalid Participants."
+                return "[Error] Invalid Participants."
             res["participants"] = participants_after
             if re.search(r"^\d{4}-\d{2}-\d{2}$", curr_date):
                 self.ddl_list.append(res)
                 self.store_ddl()
-                return '[CQ:at,qq={user_qq}] Inserted successfully!'
+                return 'Inserted successfully!'
             else:
-                return '[CQ:at,qq={user_qq}] [Error] Invalid Date.'
+                return '[Error] Invalid Date.'
         else:
-            return "[CQ:at,qq={user_qq}] [Error] Invalid syntax. Use \"ddl help\" to check usage."
+            return "[Error] Invalid syntax. Use \"ddl help\" to check usage."
 
 
 if __name__ == "__main__":
