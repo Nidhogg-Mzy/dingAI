@@ -1,13 +1,16 @@
-import socket
 import json
 import random
+import socket
+import requests
 import Leetcode
-from UserOperation import UserOperation
 import Question
+from DDLService import DDLService
+from UserOperation import UserOperation
 
 ListenSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 ListenSocket.bind(('127.0.0.1', 5701))
 ListenSocket.listen(100)
+bot_qq_account = 2585899559  # 3292297816
 
 HttpResponseHeader = '''HTTP/1.1 200 OK\r\n
 Content-Type: text/html\r\n\r\n
@@ -34,6 +37,8 @@ def send_msg(resp_dict):
     elif msg_type == 'private':
         payload = "GET /send_private_msg?user_id=" + str(
             number) + "&message=" + msg + " HTTP/1.1\r\nHost:" + ip + ":5700\r\nConnection: close\r\n\r\n"
+    else:
+        payload = ''
     print("发送" + payload)
     client.send(payload.encode("utf-8"))
     client.close()
@@ -48,45 +53,66 @@ def request_to_json(msg):
 
 
 def rev_msg():  # json or None
-    Client, Address = ListenSocket.accept()
-    Request = Client.recv(1024).decode(encoding='utf-8')
-    rev_json = request_to_json(Request)
-    Client.sendall(HttpResponseHeader.encode(encoding='utf-8'))
-    Client.close()
+    client, address = ListenSocket.accept()
+    request = client.recv(1024).decode(encoding='utf-8')
+    rev_json = request_to_json(request)
+    client.sendall(HttpResponseHeader.encode(encoding='utf-8'))
+    client.close()
     return rev_json
+
+
+def get_data(text):
+    # 请求思知机器人API所需要的一些信息
+    data = {
+        "appid": "a612dbe7965b53eeb5eaf26edccc8c94",
+        "userid": "sKJAeMs3",
+        "spoken": text,
+    }
+    return data
+
+
+def get_answer(text):
+    # 获取思知机器人的回复信息
+    data = get_data(text)
+    url = 'https://api.ownthink.com/bot'  # API接口
+    response = requests.post(url=url, data=data)
+    response.encoding = 'utf-8'
+    result = response.json()
+    answer = result['data']['info']['text']
+    return answer
 
 
 def rev_private_msg(rev):
     if rev['raw_message'] == '在吗':
         qq = rev['sender']['user_id']
-        randomnum1 = random.randint(0, 3)
-        if randomnum1 == 0:
-            send_msg({'msg_type': 'private', 'number': qq, 'msg': '在的呀小可爱'})
-        elif randomnum1 == 1:
-            send_msg({'msg_type': 'private', 'number': qq, 'msg': '一直在的呀'})
-        else:
-            send_msg({'msg_type': 'private', 'number': qq, 'msg': '呜呜呜找人家什么事嘛'})
-    if rev['raw_message'] == '你在哪':
+        reply_msg = ['在的呀小可爱', '一直在的呀', '呜呜呜找人家什么事嘛', '我无处不在', 'always here', '在的呀',
+                     '在啊，你要跟我表白吗', '不要着急，小可爱正在赶来的路上，请准备好零食和饮料耐心等待哦', '有事起奏，无事退朝',
+                     '你先说什么事，我再决定在不在', '搁外面躲债呢，你啥事啊直接说', '在呢，PDD帮我砍一刀呗', '爱卿，何事',
+                     '只要你找我，我无时无刻不在', '我在想，你累不累，毕竟你在我心里跑一天了', '想我了，就直说嘛',
+                     '我在想，用多少度的水泡你比较合适', '你看不出来吗，我在等你找我啊']
+        send_msg({'msg_type': 'private', 'number': qq, 'msg': reply_msg[random.randint(0, len(reply_msg) - 1)]})
+    elif rev['raw_message'] == '你在哪':
         qq = rev['sender']['user_id']
         send_msg({'msg_type': 'private', 'number': qq, 'msg': '我无处不在'})
     else:
         qq = rev['sender']['user_id']
-        send_msg({'msg_type': 'private', 'number': qq, 'msg': rev['raw_message']})
+        content = rev['raw_message']
+        answer = get_answer(content)
+        send_msg({'msg_type': 'private', 'number': qq, 'msg': answer})
 
 
 def rev_group_msg(rev):
     group = rev['group_id']
-    if "[CQ:at,qq=2585899559]" in rev["raw_message"]:
+    if f'[CQ:at,qq={bot_qq_account}]' in rev["raw_message"]:
         qq = rev['sender']['user_id']
         message_parts = rev['raw_message'].split(' ')
         if message_parts[1] == '在吗':
-            index = random.randint(0, 3)
-            if index == 0:
-                send_msg({'msg_type': 'group', 'number': group, 'msg': '在的呀小可爱'})
-            elif index == 1:
-                send_msg({'msg_type': 'group', 'number': group, 'msg': '一直在的呀'})
-            else:
-                send_msg({'msg_type': 'group', 'number': group, 'msg': '呜呜呜找人家什么事嘛'})
+            reply_msg = ['在的呀小可爱', '一直在的呀', '呜呜呜找人家什么事嘛', '我无处不在', 'always here', '在的呀',
+                         '在啊，你要跟我表白吗', '不要着急，小可爱正在赶来的路上，请准备好零食和饮料耐心等待哦', '有事起奏，无事退朝',
+                         '你先说什么事，我再决定在不在', '搁外面躲债呢，你啥事啊直接说', '在呢，PDD帮我砍一刀呗', '爱卿，何事',
+                         '只要你找我，我无时无刻不在', '我在想，你累不累，毕竟你在我心里跑一天了', '想我了，就直说嘛',
+                         '我在想，用多少度的水泡你比较合适', '你看不出来吗，我在等你找我啊']
+            send_msg({'msg_type': 'group', 'number': group, 'msg': reply_msg[random.randint(0, len(reply_msg))]})
             # send_msg({'msg_type': 'group', 'number': group, 'msg': '[CQ:poke,qq={}]'.format(qq)})
         elif message_parts[1] == '题来':
             question = Question.Question("2022/03/01", "1. 两数之和", "two_sum", "https://....", "简单", "哈希表，二分查找",
@@ -106,6 +132,8 @@ def rev_group_msg(rev):
             # otherwise, we should get user name from user input
             else:
                 username = rev['raw_message'].split(' ')[2]
+            leetcode = Leetcode.Leetcode(username)
+            res = leetcode.check_finish_problem('binary-search')
             # TODO: this is not complete, no message reply
         # check if today's problem has already completed
         elif message_parts[1] == 'check':
@@ -148,6 +176,16 @@ def rev_group_msg(rev):
             else:
                 send_msg({'msg_type': 'group', 'number': group,
                           'msg': f'您已绑定LeetCode的用户名是: {username_}'})
+        # DDL Service
+        elif message_parts[1] == 'ddl':
+            service = DDLService()
+            send_msg({'msg_type': 'group', 'number': group,
+                      'msg': f"[CQ:at,qq={qq}]\n" + service.process_query(message_parts[1:], qq)})
+        else:
+            content = ""
+            for i in range(1, len(message_parts)):
+                content += message_parts[i] + " "
+            send_msg({'msg_type': 'group', 'number': group, 'msg': f'[CQ:at,qq={qq}]' + get_answer(content)})
 
 
 if __name__ == '__main__':
