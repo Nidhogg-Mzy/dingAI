@@ -69,7 +69,6 @@ def check_scheduled_task():
     while True:
         # get current time in UTC+8
         curr_time = datetime.datetime.utcnow() + datetime.timedelta(hours=8)
-        print(f"curr_hr: {curr_time.hour}, curr_m: {curr_time.minute}")
         # 8:00 AM, show ddl today
         if curr_time.hour == 8 and curr_time.minute == 0:
             ddl_service = DDLService()
