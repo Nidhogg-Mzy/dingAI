@@ -1,13 +1,15 @@
-import socket
 import json
 import random
+import socket
+import requests
 import Leetcode
-from UserOperation import UserOperation
 import Question
 from DDLService import DDLService
+from UserOperation import UserOperation
 import datetime
 import time
 from threading import Thread
+
 
 ListenSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 ListenSocket.bind(('127.0.0.1', 5701))
@@ -79,18 +81,44 @@ def check_scheduled_task():
         time.sleep(20)  # allow some buffer time.
 
 
+def get_data(text):
+    # 请求思知机器人API所需要的一些信息
+    data = {
+        "appid": "a612dbe7965b53eeb5eaf26edccc8c94",
+        "userid": "sKJAeMs3",
+        "spoken": text,
+    }
+    return data
+
+
+def get_answer(text):
+    # 获取思知机器人的回复信息
+    data = get_data(text)
+    url = 'https://api.ownthink.com/bot'  # API接口
+    response = requests.post(url=url, data=data)
+    response.encoding = 'utf-8'
+    result = response.json()
+    answer = result['data']['info']['text']
+    return answer
+
+
 def rev_private_msg(rev):
     if rev['raw_message'] == '在吗':
         qq = rev['sender']['user_id']
-        random_num = random.randint(0, 3)
-        messages = ['在的呀小可爱', '一直在的呀', '呜呜呜找人家什么事嘛']
-        send_msg({'msg_type': 'private', 'number': qq, 'msg': messages[random_num]})
-    if rev['raw_message'] == '你在哪':
+        reply_msg = ['在的呀小可爱', '一直在的呀', '呜呜呜找人家什么事嘛', '我无处不在', 'always here', '在的呀',
+                     '在啊，你要跟我表白吗', '不要着急，小可爱正在赶来的路上，请准备好零食和饮料耐心等待哦', '有事起奏，无事退朝',
+                     '你先说什么事，我再决定在不在', '搁外面躲债呢，你啥事啊直接说', '在呢，PDD帮我砍一刀呗', '爱卿，何事',
+                     '只要你找我，我无时无刻不在', '我在想，你累不累，毕竟你在我心里跑一天了', '想我了，就直说嘛',
+                     '我在想，用多少度的水泡你比较合适', '你看不出来吗，我在等你找我啊']
+        send_msg({'msg_type': 'private', 'number': qq, 'msg': reply_msg[random.randint(0, len(reply_msg) - 1)]})
+    elif rev['raw_message'] == '你在哪':
         qq = rev['sender']['user_id']
         send_msg({'msg_type': 'private', 'number': qq, 'msg': '我无处不在'})
     else:
         qq = rev['sender']['user_id']
-        send_msg({'msg_type': 'private', 'number': qq, 'msg': rev['raw_message']})
+        content = rev['raw_message']
+        answer = get_answer(content)
+        send_msg({'msg_type': 'private', 'number': qq, 'msg': answer})
 
 
 def rev_group_msg(rev):
@@ -99,13 +127,12 @@ def rev_group_msg(rev):
         qq = rev['sender']['user_id']
         message_parts = rev['raw_message'].split(' ')
         if message_parts[1] == '在吗':
-            index = random.randint(0, 3)
-            if index == 0:
-                send_msg({'msg_type': 'group', 'number': group, 'msg': '在的呀小可爱'})
-            elif index == 1:
-                send_msg({'msg_type': 'group', 'number': group, 'msg': '一直在的呀'})
-            else:
-                send_msg({'msg_type': 'group', 'number': group, 'msg': '呜呜呜找人家什么事嘛'})
+            reply_msg = ['在的呀小可爱', '一直在的呀', '呜呜呜找人家什么事嘛', '我无处不在', 'always here', '在的呀',
+                         '在啊，你要跟我表白吗', '不要着急，小可爱正在赶来的路上，请准备好零食和饮料耐心等待哦', '有事起奏，无事退朝',
+                         '你先说什么事，我再决定在不在', '搁外面躲债呢，你啥事啊直接说', '在呢，PDD帮我砍一刀呗', '爱卿，何事',
+                         '只要你找我，我无时无刻不在', '我在想，你累不累，毕竟你在我心里跑一天了', '想我了，就直说嘛',
+                         '我在想，用多少度的水泡你比较合适', '你看不出来吗，我在等你找我啊']
+            send_msg({'msg_type': 'group', 'number': group, 'msg': reply_msg[random.randint(0, len(reply_msg))]})
             # send_msg({'msg_type': 'group', 'number': group, 'msg': '[CQ:poke,qq={}]'.format(qq)})
         elif message_parts[1] == '题来':
             question = Question.Question("2022/03/01", "1. 两数之和", "two_sum", "https://....", "简单", "哈希表，二分查找",
@@ -174,6 +201,12 @@ def rev_group_msg(rev):
             service = DDLService()
             send_msg({'msg_type': 'group', 'number': group,
                       'msg': f"[CQ:at,qq={qq}]\n" + service.process_query(message_parts[1:], qq)})
+        else:
+            content = ""
+            for i in range(1, len(message_parts)):
+                content += message_parts[i] + " "
+            send_msg({'msg_type': 'group', 'number': group, 'msg': f'[CQ:at,qq={qq}]' + get_answer(content)})
+
 
 def message_process_tasks():
     """
@@ -198,4 +231,3 @@ if __name__ == '__main__':
     # add a thread to process message reply tasks
     trd_msg_reply = Thread(target=message_process_tasks)
     trd_msg_reply.start()
-
