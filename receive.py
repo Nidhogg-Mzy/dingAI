@@ -76,6 +76,7 @@ def check_scheduled_task():
             ddl_service = DDLService()
             send_msg({'msg_type': 'group', 'number': '705716007', 'msg':
                      f'大家早上好呀, 又是新的一天，来看看今天还有哪些ddl呢>_<\n{ddl_service.process_query("ddl today".split(" "), "0")}'})
+            ddl_service.remove_expired_ddl()    # remove expired ddl timely
             time.sleep(60)
 
         time.sleep(20)  # allow some buffer time.
