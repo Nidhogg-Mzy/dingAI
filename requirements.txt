@@ -1,0 +1,17 @@
+beautifulsoup4==4.10.0
+brotlipy==0.7.0
+certifi==2021.10.8
+cffi==1.15.0
+charset-normalizer==2.0.4
+cryptography==36.0.0
+idna==3.3
+pip==21.2.4
+pycparser==2.21
+pyOpenSSL==22.0.0
+PySocks==1.7.1
+requests==2.27.1
+selenium==3.141.0
+setuptools==58.0.4
+soupsieve==2.3.1
+urllib3==1.26.8
+wheel==0.37.1
