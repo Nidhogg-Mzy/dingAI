@@ -99,7 +99,10 @@ def get_answer(text):
     response = requests.post(url=url, data=data)
     response.encoding = 'utf-8'
     result = response.json()
-    answer = result['data']['info']['text']
+    try:
+        answer = result['data']['info']['text']
+    except TypeError:
+        return "抱歉，我没有理解您的意思，请换一个问题试试？"
     return answer
 
 
