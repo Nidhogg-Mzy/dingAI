@@ -4,10 +4,15 @@ import random
 import Leetcode
 from UserOperation import UserOperation
 import Question
+from DDLService import DDLService
+import datetime
+import time
+from threading import Thread
 
 ListenSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 ListenSocket.bind(('127.0.0.1', 5701))
 ListenSocket.listen(100)
+bot_qq_account = 2585899559  # st_bot: 2585899559  # bot: 3292297816
 
 HttpResponseHeader = '''HTTP/1.1 200 OK\r\n
 Content-Type: text/html\r\n\r\n
@@ -34,6 +39,8 @@ def send_msg(resp_dict):
     elif msg_type == 'private':
         payload = "GET /send_private_msg?user_id=" + str(
             number) + "&message=" + msg + " HTTP/1.1\r\nHost:" + ip + ":5700\r\nConnection: close\r\n\r\n"
+    else:
+        payload = ''
     print("发送" + payload)
     client.send(payload.encode("utf-8"))
     client.close()
@@ -48,24 +55,36 @@ def request_to_json(msg):
 
 
 def rev_msg():  # json or None
-    Client, Address = ListenSocket.accept()
-    Request = Client.recv(1024).decode(encoding='utf-8')
-    rev_json = request_to_json(Request)
-    Client.sendall(HttpResponseHeader.encode(encoding='utf-8'))
-    Client.close()
+    client, address = ListenSocket.accept()
+    request = client.recv(1024).decode(encoding='utf-8')
+    rev_json = request_to_json(request)
+    client.sendall(HttpResponseHeader.encode(encoding='utf-8'))
+    client.close()
     return rev_json
+
+def check_scheduled_task():
+    """
+    This function stores scheduled tasks.
+    """
+    while True:
+        # get current time in UTC+8
+        curr_time = datetime.datetime.utcnow() + datetime.timedelta(hours=8)
+        # 8:00 AM, show ddl today
+        if curr_time.hour == 8 and curr_time.minute == 0:
+            ddl_service = DDLService()
+            send_msg({'msg_type': 'group', 'number': '705716007', 'msg':
+                     f'大家早上好呀, 又是新的一天，来看看今天还有哪些ddl呢>_<\n{ddl_service.process_query("ddl today".split(" "), "0")}'})
+            time.sleep(60)
+
+        time.sleep(20)  # allow some buffer time.
 
 
 def rev_private_msg(rev):
     if rev['raw_message'] == '在吗':
         qq = rev['sender']['user_id']
-        randomnum1 = random.randint(0, 3)
-        if randomnum1 == 0:
-            send_msg({'msg_type': 'private', 'number': qq, 'msg': '在的呀小可爱'})
-        elif randomnum1 == 1:
-            send_msg({'msg_type': 'private', 'number': qq, 'msg': '一直在的呀'})
-        else:
-            send_msg({'msg_type': 'private', 'number': qq, 'msg': '呜呜呜找人家什么事嘛'})
+        random_num = random.randint(0, 3)
+        messages = ['在的呀小可爱', '一直在的呀', '呜呜呜找人家什么事嘛']
+        send_msg({'msg_type': 'private', 'number': qq, 'msg': messages[random_num]})
     if rev['raw_message'] == '你在哪':
         qq = rev['sender']['user_id']
         send_msg({'msg_type': 'private', 'number': qq, 'msg': '我无处不在'})
@@ -76,7 +95,7 @@ def rev_private_msg(rev):
 
 def rev_group_msg(rev):
     group = rev['group_id']
-    if "[CQ:at,qq=2585899559]" in rev["raw_message"]:
+    if f'[CQ:at,qq={bot_qq_account}]' in rev["raw_message"]:
         qq = rev['sender']['user_id']
         message_parts = rev['raw_message'].split(' ')
         if message_parts[1] == '在吗':
@@ -100,7 +119,7 @@ def rev_group_msg(rev):
                 status_, username_ = user_op.get_leetcode(str(qq))
                 if not status_:
                     send_msg({'msg_type': 'group', 'number': group, 'msg':
-                        '我还不知道您的LeetCode账户名哦，试试 register <your leetcode username>, 或者在today 后面加上你要查找的用户名哦!'})
+                              '我还不知道您的LeetCode账户名哦，试试 register <your leetcode username>, 或者在today 后面加上你要查找的用户名哦!'})
                     return
                 username = username_
             # otherwise, we should get user name from user input
@@ -117,7 +136,7 @@ def rev_group_msg(rev):
                 status_, username_ = user_op.get_leetcode(str(qq))
                 if not status_:
                     send_msg({'msg_type': 'group', 'number': group, 'msg':
-                        '我还不知道您的LeetCode账户名哦，试试 register <your leetcode username>, 或者在check 后面加上你要查找的用户名哦!'})
+                              '我还不知道您的LeetCode账户名哦，试试 register <your leetcode username>, 或者在check 后面加上你要查找的用户名哦!'})
                     return
                 username = username_
             # otherwise, we should get user name from user input
@@ -129,7 +148,7 @@ def rev_group_msg(rev):
                 send_msg({'msg_type': 'group', 'number': group, 'msg': '你怎么没写完啊？坏孩子！'})
             else:
                 send_msg({'msg_type': 'group', 'number': group, 'msg': f'You have passed this problem '
-                                                                f'in the following languages: {res}'})
+                                                                       f'in the following languages: {res}'})
         # register: match the qq account with leetcode username,
         # so user don't need to provide username when query
         elif message_parts[1] == 'register':
@@ -150,9 +169,16 @@ def rev_group_msg(rev):
             else:
                 send_msg({'msg_type': 'group', 'number': group,
                           'msg': f'您已绑定LeetCode的用户名是: {username_}'})
+        # DDL Service
+        elif message_parts[1] == 'ddl':
+            service = DDLService()
+            send_msg({'msg_type': 'group', 'number': group,
+                      'msg': f"[CQ:at,qq={qq}]\n" + service.process_query(message_parts[1:], qq)})
 
-
-if __name__ == '__main__':
+def message_process_tasks():
+    """
+    All private/group message processing are done here.
+    """
     while True:
         received = rev_msg()
         if received["post_type"] == "message":
@@ -162,4 +188,14 @@ if __name__ == '__main__':
             # GROUP MESSAGE
             elif received["message_type"] == "group":
                 rev_group_msg(received)
+
+
+if __name__ == '__main__':
+    # add a thread to check scheduled tasks
+    trd_scheduled = Thread(target=check_scheduled_task)
+    trd_scheduled.start()
+
+    # add a thread to process message reply tasks
+    trd_msg_reply = Thread(target=message_process_tasks)
+    trd_msg_reply.start()
 
