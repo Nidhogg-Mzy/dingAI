@@ -58,7 +58,7 @@ def request_to_json(msg):
 
 def rev_msg():  # json or None
     client, address = ListenSocket.accept()
-    request = client.recv(1024).decode(encoding='utf-8')
+    request = client.recv(4096).decode('utf-8', 'ignore')
     rev_json = request_to_json(request)
     client.sendall(HttpResponseHeader.encode(encoding='utf-8'))
     client.close()
@@ -218,13 +218,23 @@ def message_process_tasks():
     """
     while True:
         received = rev_msg()
-        if received["post_type"] == "message":
-            # PRIVATE MESSAGE
-            if received["message_type"] == "private":
-                rev_private_msg(received)
-            # GROUP MESSAGE
-            elif received["message_type"] == "group":
-                rev_group_msg(received)
+        try:
+            if received["post_type"] == "message":
+                # PRIVATE MESSAGE
+                if received["message_type"] == "private":
+                    rev_private_msg(received)
+                # GROUP MESSAGE
+                elif received["message_type"] == "group":
+                    rev_group_msg(received)
+        except TypeError:
+            # This error will be reported to developers via qq private message.
+            error_msg = f'[Internal Error] TypeError while doing "received["post_type"]", ' + \
+                        f'where "received" is None. If the message received is too long, try ' + \
+                        f'release the length restriction. (currently 4096)'
+            send_msg({'msg_type': 'private', 'number': '2220038250', 'msg': error_msg})
+            send_msg({'msg_type': 'private', 'number': '3429582673', 'msg': error_msg})
+            # also record in log
+            print(f'##### Error\n{error_msg}')
 
 
 if __name__ == '__main__':
