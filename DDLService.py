@@ -125,7 +125,8 @@ class DDLService:
             return "ddl due in a week: \n" + \
                    DDLService.prettify_ddl_list(
                        self.get_ddl(lambda ddl:
-                                    str(datetime.date.today() + datetime.timedelta(days=8)) >= ddl["date"] >= str(datetime.date.today()))
+                                    str(datetime.date.today() + datetime.timedelta(days=8))
+                                    >= ddl["date"] >= str(datetime.date.today()))
                    )
         # else if the q_type is a date
         elif re.search(r"^\d{4}-\d{2}-\d{2}$", q_type):
@@ -138,7 +139,8 @@ class DDLService:
             return f"ddl due in a week for [CQ:at,qq={user_qq}]: \n" + \
                    DDLService.prettify_ddl_list(self.get_ddl(
                        lambda ddl: (str(user_qq) in ddl["participants"]) and
-                                   (ddl["date"] <= str(datetime.date.today() + datetime.timedelta(days=8))))
+                                    str(datetime.date.today() + datetime.timedelta(days=8))
+                                    >= ddl["date"] >= str(datetime.date.today()))
                    )
         # syntax help
         elif q_type == "help":
