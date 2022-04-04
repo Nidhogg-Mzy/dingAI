@@ -23,7 +23,7 @@ class UserOperation:
         with open(self.data_file, 'w') as json_file:
             json.dump(self.user_list, json_file, indent=4, separators=(',', ': '))
 
-    def register(self, qq: str, leetcode: str) -> tuple[bool, str]:
+    def register(self, qq: str, leetcode: str) -> tuple:
         """
         Given qq account and leetcode username, register a new user. This function won't raise any exception.
         :param qq: qq account
@@ -50,7 +50,7 @@ class UserOperation:
             else:
                 return True, f"Successfully set your leetcode username to {leetcode}."
 
-    def get_leetcode(self, qq: str) -> tuple[bool, str]:
+    def get_leetcode(self, qq: str) -> tuple:
         """
         Given qq account, return the user's leetcode username.
         :param qq: qq account
