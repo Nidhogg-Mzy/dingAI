@@ -10,11 +10,12 @@ import datetime
 import time
 from threading import Thread
 
+from reply import search, get_lyrics_pro
 
 ListenSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 ListenSocket.bind(('127.0.0.1', 5701))
 ListenSocket.listen(100)
-bot_qq_account = 2585899559  # st_bot: 2585899559  # bot: 3292297816
+bot_qq_account = 3292297816  # st_bot: 2585899559  # bot: 3292297816
 
 HttpResponseHeader = '''HTTP/1.1 200 OK\r\n
 Content-Type: text/html\r\n\r\n
@@ -106,6 +107,7 @@ def get_answer(text):
     return answer
 
 
+
 def rev_private_msg(rev):
     if rev['raw_message'] == '在吗':
         qq = rev['sender']['user_id']
@@ -118,6 +120,34 @@ def rev_private_msg(rev):
     elif rev['raw_message'] == '你在哪':
         qq = rev['sender']['user_id']
         send_msg({'msg_type': 'private', 'number': qq, 'msg': '我无处不在'})
+    elif rev['raw_message'].split(' ')[0] == '歌词':
+        qq = rev['sender']['user_id']
+        try:
+            str1 = '歌词'
+            # print(str)
+            song = rev['raw_message'].replace(str1, '')
+            d = search()
+            id = d.search_song(song)
+            text = get_lyrics_pro(id)
+            qq = rev['sender']['user_id']
+            send_msg({'msg_type': 'private', 'number': qq, 'msg': text})
+        except:
+            qq = rev['sender']['user_id']
+            send_msg({'msg_type': 'private', 'number': qq, 'msg': '请在歌名前面加上空格。'})
+    elif rev['raw_message'].split(' ')[0] == '歌曲':
+        qq = rev['sender']['user_id']
+        try:
+            str1 = '歌曲'
+            # print(str)
+            song = rev['raw_message'].replace(str1, '')
+            d = search()
+            id = d.search_song(song)
+            qq = rev['sender']['user_id']
+            send_msg(
+                {'msg_type': 'private', 'number': qq, 'msg': '[CQ:music,type=163,id={}]'.format(id)})
+        except:
+            qq = rev['sender']['user_id']
+            send_msg({'msg_type': 'private', 'number': qq, 'msg': '请在歌名前面加上空格。'})
     else:
         qq = rev['sender']['user_id']
         content = rev['raw_message']
