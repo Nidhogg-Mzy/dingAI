@@ -10,7 +10,7 @@ import datetime
 import time
 from threading import Thread
 
-from reply import search, get_lyrics_pro
+from multi_func_reply import Search, get_lyrics_pro
 
 ListenSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 ListenSocket.bind(('127.0.0.1', 5701))
@@ -65,6 +65,7 @@ def rev_msg():  # json or None
     client.close()
     return rev_json
 
+
 def check_scheduled_task():
     """
     This function stores scheduled tasks.
@@ -76,8 +77,8 @@ def check_scheduled_task():
         if curr_time.hour == 8 and curr_time.minute == 0:
             ddl_service = DDLService()
             send_msg({'msg_type': 'group', 'number': '705716007', 'msg':
-                     f'大家早上好呀, 又是新的一天，来看看今天还有哪些ddl呢>_<\n{ddl_service.process_query("ddl today".split(" "), "0")}'})
-            ddl_service.remove_expired_ddl()    # remove expired ddl timely
+                f'大家早上好呀, 又是新的一天，来看看今天还有哪些ddl呢>_<\n{ddl_service.process_query("ddl today".split(" "), "0")}'})
+            ddl_service.remove_expired_ddl()  # remove expired ddl timely
             time.sleep(60)
 
         time.sleep(20)  # allow some buffer time.
@@ -107,7 +108,6 @@ def get_answer(text):
     return answer
 
 
-
 def rev_private_msg(rev):
     if rev['raw_message'] == '在吗':
         qq = rev['sender']['user_id']
@@ -121,37 +121,45 @@ def rev_private_msg(rev):
         qq = rev['sender']['user_id']
         send_msg({'msg_type': 'private', 'number': qq, 'msg': '我无处不在'})
     elif rev['raw_message'].split(' ')[0] == '歌词':
-        qq = rev['sender']['user_id']
         try:
             str1 = '歌词'
-            # print(str)
             song = rev['raw_message'].replace(str1, '')
-            d = search()
-            id = d.search_song(song)
-            text = get_lyrics_pro(id)
+            d = Search()
+            Id = d.search_song(song)
+            text = get_lyrics_pro(Id)
             qq = rev['sender']['user_id']
-            send_msg({'msg_type': 'private', 'number': qq, 'msg': text})
-        except:
+            if Id is None:
+                send_msg(
+                    {'msg_type': 'private', 'number': qq, 'msg': '呜呜呜人家找不到嘛'})
+            else:
+                send_msg(
+                    {'msg_type': 'private', 'number': qq, 'msg': text})
+        except BaseException:
             qq = rev['sender']['user_id']
             send_msg({'msg_type': 'private', 'number': qq, 'msg': '请在歌名前面加上空格。'})
     elif rev['raw_message'].split(' ')[0] == '歌曲':
-        qq = rev['sender']['user_id']
         try:
             str1 = '歌曲'
-            # print(str)
             song = rev['raw_message'].replace(str1, '')
-            d = search()
-            id = d.search_song(song)
+            d = Search()
+            Id = d.search_song(song)
             qq = rev['sender']['user_id']
-            send_msg(
-                {'msg_type': 'private', 'number': qq, 'msg': '[CQ:music,type=163,id={}]'.format(id)})
-        except:
+            if Id is None:
+                send_msg(
+                    {'msg_type': 'private', 'number': qq, 'msg': '呜呜呜人家找不到嘛'})
+            else :
+                send_msg(
+                    {'msg_type': 'private', 'number': qq, 'msg': '[CQ:music,type=163,Id={}]'.format(Id)})
+        except BaseException:
             qq = rev['sender']['user_id']
             send_msg({'msg_type': 'private', 'number': qq, 'msg': '请在歌名前面加上空格。'})
     else:
         qq = rev['sender']['user_id']
         content = rev['raw_message']
-        answer = get_answer(content)
+        if content == '':
+            answer = '根本搞不懂你在讲咩话，说点别的听听啦'
+        else:
+            answer = get_answer(content)
         send_msg({'msg_type': 'private', 'number': qq, 'msg': answer})
 
 
@@ -180,7 +188,7 @@ def rev_group_msg(rev):
                 status_, username_ = user_op.get_leetcode(str(qq))
                 if not status_:
                     send_msg({'msg_type': 'group', 'number': group, 'msg':
-                              '我还不知道您的LeetCode账户名哦，试试 register <your leetcode username>, 或者在today 后面加上你要查找的用户名哦!'})
+                        '我还不知道您的LeetCode账户名哦，试试 register <your leetcode username>, 或者在today 后面加上你要查找的用户名哦!'})
                     return
                 username = username_
             # otherwise, we should get user name from user input
@@ -197,7 +205,7 @@ def rev_group_msg(rev):
                 status_, username_ = user_op.get_leetcode(str(qq))
                 if not status_:
                     send_msg({'msg_type': 'group', 'number': group, 'msg':
-                              '我还不知道您的LeetCode账户名哦，试试 register <your leetcode username>, 或者在check 后面加上你要查找的用户名哦!'})
+                        '我还不知道您的LeetCode账户名哦，试试 register <your leetcode username>, 或者在check 后面加上你要查找的用户名哦!'})
                     return
                 username = username_
             # otherwise, we should get user name from user input
