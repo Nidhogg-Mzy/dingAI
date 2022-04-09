@@ -18,18 +18,11 @@ class Leetcode:
 
     def question_of_today(self) -> dict:
         self.load_leet_from_file()
-        for i in range(len(self.leet_list)):
-            date = self.leet_list[i]['date']
-            question_year = date.split('-')[0]
-            question_month = date.split('-')[1]
-            question_day = date.split('-')[2]
-            now = datetime.datetime.now()  # current date and time
-            curr_year = now.strftime("%Y")
-            curr_month = now.strftime("%m")
-            curr_day = now.strftime("%d")
-            if (curr_year == question_year) and (curr_month == question_month) and (curr_day == question_day):
-                return self.leet_list[i]
-        return None
+        today = datetime.date.today()  # current date
+        result = self.get_leet(lambda prob: prob['date'] == str(today))
+        if not result:
+            return {}
+        return result[0]
 
     def load_leet_from_file(self):
         """
@@ -139,7 +132,7 @@ class Leetcode:
 
         if query[2] == 'today':
             question = self.question_of_today()
-            if question is None:
+            if not question:
                 return "[Error] No question today."
             else:
                 return question['date'] + ":\n" + "今日题目 : " + question['name'] + "\n" + \
@@ -189,11 +182,11 @@ class Leetcode:
                 return 'leet insert {"date": "enter the date", "name": "enter name here", "id": "enter the id here", ' \
                        '"link": "enter the link here", "difficulty": "enter the difficulty here", ' \
                        '"description": "enter the description here"}'
-            Leetcode_info = ''
+            leetcode_info = ''
             for i in range(3, len(query)):
-                Leetcode_info += query[i] + ' '
+                leetcode_info += query[i] + ' '
             try:
-                res = json.loads(Leetcode_info)
+                res = json.loads(leetcode_info)
                 curr_date = res['date']
             except json.JSONDecodeError:
                 return "[Error] Invalid syntax. Use \"leet insert\" to check usage."
