@@ -198,5 +198,14 @@ class Leetcode:
                 return 'Inserted successfully!'
             else:
                 return '[Error] Invalid Date.'
+        elif query[2] == 'help':
+            return '''
+            [leet today]: 查看今日题目
+            [leet check]: 查看是否已完成今日题目
+            [leet insert]: 插入题目
+            [leet register]: 绑定Leetcode账户
+            [leet username]: 查看已绑定的Leetcode账户
+            [leet help]: 查看此帮助
+            '''
         else:
             return "[Error] Invalid syntax. Use \"leet help\" to check usage."
