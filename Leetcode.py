@@ -1,7 +1,6 @@
 import datetime
 import json
 import re
-
 from bs4 import BeautifulSoup
 from selenium import webdriver
 from UserOperation import UserOperation
@@ -34,22 +33,22 @@ class Leetcode:
 
     def load_leet_from_file(self):
         """
-        Load ddl list from file, store the result in self.ddl_list
+        Load leetcode problem list from file, store the result in self.leet_list
         """
         with open(self.filename, "r") as f:
             self.leet_list = json.load(f)  # A list of dict
 
     def get_leet(self, predicate: lambda ddl: bool) -> list:
         """
-        Return a list of ddl that satisfy the predicate
+        Return a list of leetcode problem that satisfy the predicate
         :param predicate: a function that takes a ddl and returns True or False based on your predicate
-        :return: a list of ddl that satisfy the predicate
+        :return: a list of leetcode problem that satisfy the predicate
         """
         return list(filter(predicate, self.leet_list))
 
     def store_leet(self):
         """
-        Store the self.ddl_list to file, we don't handle any exception here.
+        Store the self.leet_list to file, we don't handle any exception here.
         """
         with open(self.filename, "w", encoding='utf-8') as f:
             json.dump(self.leet_list, f, ensure_ascii=False, indent=4, separators=(',', ': '))
@@ -57,6 +56,7 @@ class Leetcode:
     def get_recent_passed_submission(self, username: str, debug=False, force_refresh=False) -> list:
         """
         Get the recent PASSED submission records for a user, only get passed ones.
+        :param username: The leetcode username of the user
         :param debug: If True, print debug messages
         :param force_refresh: If True, force refresh the result, do not read from cache
         :return: A list, each item is ['problem name', 'problem id', 'language', 'time']
@@ -109,6 +109,7 @@ class Leetcode:
         Given problem id (english id in problem url), check if the user has passed the problem.
         Return a list, containing all languages that the user used to pass the problem.
         :param problem_id: Given problem id to check
+        :param username: The leetcode username of the user
         :param force_refresh: If True, force refresh the result, do not read from cache
         :return: A list of languages that the user used to pass the problem
         """
@@ -140,7 +141,7 @@ class Leetcode:
             question = self.question_of_today()
             if question is None:
                 return "[Error] No question today."
-            else :
+            else:
                 return question['date'] + ":\n" + "今日题目 : " + question['name'] + "\n" + \
                        "题目链接 : " + question['link'] + "\n" + \
                        "难度 : " + question['difficulty'] + "\n" + \
