@@ -3,18 +3,15 @@ import random
 import socket
 import requests
 import Leetcode
-import Question
 from DDLService import DDLService
-from UserOperation import UserOperation
 import datetime
 import time
 from threading import Thread
 
-
 ListenSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 ListenSocket.bind(('127.0.0.1', 5701))
 ListenSocket.listen(100)
-bot_qq_account = 2585899559  # st_bot: 2585899559  # bot: 3292297816
+bot_qq_account = 3292297816  # st_bot: 2585899559  # bot: 3292297816
 
 HttpResponseHeader = '''HTTP/1.1 200 OK\r\n
 Content-Type: text/html\r\n\r\n
@@ -58,11 +55,12 @@ def request_to_json(msg):
 
 def rev_msg():  # json or None
     client, address = ListenSocket.accept()
-    request = client.recv(4096).decode('utf-8', 'ignore')
+    request = client.recv(8192).decode('utf-8', 'ignore')
     rev_json = request_to_json(request)
     client.sendall(HttpResponseHeader.encode(encoding='utf-8'))
     client.close()
     return rev_json
+
 
 def check_scheduled_task():
     """
@@ -75,8 +73,8 @@ def check_scheduled_task():
         if curr_time.hour == 8 and curr_time.minute == 0:
             ddl_service = DDLService()
             send_msg({'msg_type': 'group', 'number': '705716007', 'msg':
-                     f'大家早上好呀, 又是新的一天，来看看今天还有哪些ddl呢>_<\n{ddl_service.process_query("ddl today".split(" "), "0")}'})
-            ddl_service.remove_expired_ddl()    # remove expired ddl timely
+                f'大家早上好呀, 又是新的一天，来看看今天还有哪些ddl呢>_<\n{ddl_service.process_query("ddl today".split(" "), "0")}'})
+            ddl_service.remove_expired_ddl()  # remove expired ddl timely
             time.sleep(60)
 
         time.sleep(20)  # allow some buffer time.
@@ -137,74 +135,17 @@ def rev_group_msg(rev):
                          '只要你找我，我无时无刻不在', '我在想，你累不累，毕竟你在我心里跑一天了', '想我了，就直说嘛',
                          '我在想，用多少度的水泡你比较合适', '你看不出来吗，我在等你找我啊']
             send_msg({'msg_type': 'group', 'number': group, 'msg': reply_msg[random.randint(0, len(reply_msg))]})
-            # send_msg({'msg_type': 'group', 'number': group, 'msg': '[CQ:poke,qq={}]'.format(qq)})
-        elif message_parts[1] == '题来':
-            question = Question.Question("2022/03/01", "1. 两数之和", "two_sum", "https://....", "简单", "哈希表，二分查找",
-                                         {"enor2017": "Accepted", "nidhogg_mzy": ""})
-            send_msg({'msg_type': 'group', 'number': group, 'msg': question.toString()})
-        # code for daily sign
-        elif message_parts[1] == 'today':
-            # if user name is not provided the user must have been registered, otherwise, report error
-            if len(rev['raw_message'].split(' ')) < 3:
-                user_op = UserOperation()
-                status_, username_ = user_op.get_leetcode(str(qq))
-                if not status_:
-                    send_msg({'msg_type': 'group', 'number': group, 'msg':
-                              '我还不知道您的LeetCode账户名哦，试试 register <your leetcode username>, 或者在today 后面加上你要查找的用户名哦!'})
-                    return
-                username = username_
-            # otherwise, we should get user name from user input
-            else:
-                username = rev['raw_message'].split(' ')[2]
-            leetcode = Leetcode.Leetcode(username)
-            res = leetcode.check_finish_problem('binary-search')
-            # TODO: this is not complete, no message reply
-        # check if today's problem has already completed
-        elif message_parts[1] == 'check':
-            # if user name is not provided, the user must have been registered, otherwise, report error
-            if len(rev['raw_message'].split(' ')) < 3:
-                user_op = UserOperation()
-                status_, username_ = user_op.get_leetcode(str(qq))
-                if not status_:
-                    send_msg({'msg_type': 'group', 'number': group, 'msg':
-                              '我还不知道您的LeetCode账户名哦，试试 register <your leetcode username>, 或者在check 后面加上你要查找的用户名哦!'})
-                    return
-                username = username_
-            # otherwise, we should get user name from user input
-            else:
-                username = rev['raw_message'].split(' ')[2]
-            leetcode = Leetcode.Leetcode(username)
-            res = leetcode.check_finish_problem('binary-search')
-            if not res:
-                send_msg({'msg_type': 'group', 'number': group, 'msg': '你怎么没写完啊？坏孩子！'})
-            else:
-                send_msg({'msg_type': 'group', 'number': group, 'msg': f'You have passed this problem '
-                                                                       f'in the following languages: {res}'})
-        # register: match the qq account with leetcode username,
-        # so user don't need to provide username when query
-        elif message_parts[1] == 'register':
-            # if username is not provided
-            if len(message_parts) < 3:
-                send_msg({'msg_type': 'group', 'number': group, 'msg': '正确食用方法: register <your leetcode username>'})
-            else:
-                user_op = UserOperation()
-                _, msg_ = user_op.register(str(qq), message_parts[2])
-                send_msg({'msg_type': 'group', 'number': group, 'msg': msg_})
-        # check username, for already registered users
-        elif message_parts[1] == 'username':
-            user_op = UserOperation()
-            status_, username_ = user_op.get_leetcode(str(qq))
-            if not status_:
-                send_msg({'msg_type': 'group', 'number': group,
-                          'msg': '我还不知道您的LeetCode用户名诶，要不要试试 register <your leetcode username>'})
-            else:
-                send_msg({'msg_type': 'group', 'number': group,
-                          'msg': f'您已绑定LeetCode的用户名是: {username_}'})
-        # DDL Service
+        # leetcode feature
+        elif message_parts[1] == 'leet':
+            leetcode = Leetcode.Leetcode()
+            send_msg({'msg_type': 'group', 'number': group,
+                      'msg': f"[CQ:at,qq={qq}]\n" + leetcode.process_query(message_parts, qq)})
+        # DDL feature
         elif message_parts[1] == 'ddl':
             service = DDLService()
             send_msg({'msg_type': 'group', 'number': group,
                       'msg': f"[CQ:at,qq={qq}]\n" + service.process_query(message_parts[1:], qq)})
+
         else:
             content = ""
             for i in range(1, len(message_parts)):
@@ -230,7 +171,8 @@ def message_process_tasks():
             # This error will be reported to developers via qq private message.
             error_msg = f'[Internal Error] TypeError while doing "received["post_type"]", ' + \
                         f'where "received" is None. If the message received is too long, try ' + \
-                        f'release the length restriction. (currently 4096)'
+                        f'release the length restriction. (currently 8192) ' + \
+                        f'wrong encode type in json.dump()'
             send_msg({'msg_type': 'private', 'number': '2220038250', 'msg': error_msg})
             send_msg({'msg_type': 'private', 'number': '3429582673', 'msg': error_msg})
             # also record in log

@@ -8,10 +8,7 @@ all Questions should appear like :
         "problem_link": "https://....",
         "problem_difficulty": "简单",
         "problem_description": "哈希表，二分查找",
-        "participants": {
-            "enor2017": "Accepted",
-            "nidhogg_mzy": ""
-        }
+        "participants": "enor2017"
     }
 }
 
@@ -54,9 +51,4 @@ class Question:
         result = self.date + ":\n" + "今日题目 : " + self.name + "\n" + \
                  "题目链接 : " + self.link + "\n" + \
                  "难度 : " + self.difficulty + "\n" + \
-                 "标签 : " + self.description + "\n" + \
-                 "做题的小可爱 : "
-        for i in self.participants.keys():
-            if self.participants[i] == "Accepted":
-                result += i + ""
-        return result
+                 "标签 : " + self.description + "\n"
