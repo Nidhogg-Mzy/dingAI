@@ -12,9 +12,9 @@ class Leetcode:
     """
 
     def __init__(self):
-        self.recent_submission = None
         self.filename = 'leetcode.json'
         self.leet_list = []
+        self.load_leet_from_file()
 
     def question_of_today(self) -> dict:
         self.load_leet_from_file()
@@ -46,18 +46,14 @@ class Leetcode:
         with open(self.filename, "w", encoding='utf-8') as f:
             json.dump(self.leet_list, f, ensure_ascii=False, indent=4, separators=(',', ': '))
 
-    def get_recent_passed_submission(self, username: str, debug=False, force_refresh=False) -> list:
+    @staticmethod
+    def get_recent_passed_submission(username: str, debug=False) -> list:
         """
         Get the recent PASSED submission records for a user, only get passed ones.
         :param username: The leetcode username of the user
         :param debug: If True, print debug messages
-        :param force_refresh: If True, force refresh the result, do not read from cache
         :return: A list, each item is ['problem name', 'problem id', 'language', 'time']
         """
-        # check if the recent submission is cached
-        if (not force_refresh) and (self.recent_submission is not None):
-            return self.recent_submission
-
         url = f"https://leetcode-cn.com/u/{username}/"
 
         # we need to use web-driver to open the webpage
@@ -97,7 +93,8 @@ class Leetcode:
         self.recent_submission = submission_details
         return submission_details
 
-    def check_finish_problem(self, problem_id: str, username: str, force_refresh=False) -> list:
+    @staticmethod
+    def check_finish_problem(problem_id: str, username: str) -> list:
         """
         Given problem id (english id in problem url), check if the user has passed the problem.
         Return a list, containing all languages that the user used to pass the problem.
@@ -106,7 +103,7 @@ class Leetcode:
         :param force_refresh: If True, force refresh the result, do not read from cache
         :return: A list of languages that the user used to pass the problem
         """
-        passed_record = self.get_recent_passed_submission(username=username, force_refresh=force_refresh)
+        passed_record = Leetcode.get_recent_passed_submission(username=username, debug=True)
         result_list = []
         for record in passed_record:
             if record[1] == problem_id:
@@ -140,31 +137,27 @@ class Leetcode:
                        "难度 : " + question['difficulty'] + "\n" + \
                        "标签 : " + question['description'] + "\n"
         elif query[2] == 'check':
-            # if user name is not provided, the user must have been registered, otherwise, report error
-            if len(query) < 3:
-                user_op = UserOperation()
-                status_, username_ = user_op.get_leetcode(str(user_qq))
-                if not status_:
-                    return '我还不知道您的LeetCode账户名哦，试试 register <your leetcode username>, 或者在check 后面加上你要查找的用户名哦!'
-                username = username_
-            # otherwise, we should get user name from user input
-            else:
-                username = query[2]
-            leetcode = Leetcode()
-            res = leetcode.check_finish_problem('binary-search', username)
+            # the user must have been registered before using this command
+            if len(query) > 3:
+                return "[Error] Invalid syntax. Use \"leet help\" to check usage."
+            user_op = UserOperation()
+            status_, username_ = user_op.get_leetcode(str(user_qq))
+            if not status_:
+                return '我还不知道您的LeetCode账户名哦，试试leet register <your leetcode username>'
+            question_today = self.question_of_today()
+            res = Leetcode.check_finish_problem(question_today['id'], username_)
             if not res:
                 return '你怎么没写完啊？坏孩子！'
             else:
-                self.load_leet_from_file()
-                question = self.question_of_today()
-                question['participants'] += username + ' '
-                return f'You have passed this problem in the following languages: {res}'
+                question_today['participants'].append(username_)
+                self.store_leet()
+                return f'wow! 你使用了这些语言通过这道题: {res}'
         # register: match the qq account with leetcode username,
         # so user don't need to provide username when query
         elif query[2] == 'register':
             # if username is not provided
             if len(query) < 4:
-                return '正确食用方法: register <your leetcode username>'
+                return '正确食用方法: leet register <your leetcode username>'
             else:
                 user_op = UserOperation()
                 _, msg_ = user_op.register(str(user_qq), query[3])
@@ -174,7 +167,7 @@ class Leetcode:
             user_op = UserOperation()
             status_, username_ = user_op.get_leetcode(str(user_qq))
             if not status_:
-                return '我还不知道您的LeetCode用户名诶，要不要试试 register <your leetcode username>'
+                return '我还不知道您的LeetCode用户名诶，要不要试试 leet register <your leetcode username>'
             else:
                 return f'您已绑定LeetCode的用户名是: {username_}'
         elif query[2] == 'insert':
@@ -182,9 +175,7 @@ class Leetcode:
                 return 'leet insert {"date": "enter the date", "name": "enter name here", "id": "enter the id here", ' \
                        '"link": "enter the link here", "difficulty": "enter the difficulty here", ' \
                        '"description": "enter the description here"}'
-            leetcode_info = ''
-            for i in range(3, len(query)):
-                leetcode_info += query[i] + ' '
+            leetcode_info = ' '.join(query[3:])
             try:
                 res = json.loads(leetcode_info)
                 curr_date = res['date']
@@ -201,7 +192,7 @@ class Leetcode:
         elif query[2] == 'help':
             return '''
             [leet today]: 查看今日题目
-            [leet check]: 查看是否已完成今日题目
+            [leet check]: 查看是否已完成今日题目(须绑定Leetcode账户)
             [leet insert]: 插入题目
             [leet register]: 绑定Leetcode账户
             [leet username]: 查看已绑定的Leetcode账户
