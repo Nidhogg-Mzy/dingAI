@@ -14,7 +14,7 @@ from threading import Thread
 ListenSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 ListenSocket.bind(('127.0.0.1', 5701))
 ListenSocket.listen(100)
-bot_qq_account = 2585899559  # st_bot: 2585899559  # bot: 3292297816
+bot_qq_account = 3292297816  # st_bot: 2585899559  # bot: 3292297816
 
 HttpResponseHeader = '''HTTP/1.1 200 OK\r\n
 Content-Type: text/html\r\n\r\n

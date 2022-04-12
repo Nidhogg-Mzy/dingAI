@@ -77,7 +77,7 @@ class DDLService:
             f"备注: {ddl['description']}"
 
     @staticmethod
-    def prettify_ddl_list(ddl_list: list, fancy=True) -> str:
+    def prettify_ddl_list(ddl_list: list, fancy=True, print_index = False) -> str:
         """
         Prettify a list of ddl, use prettify_ddl to prettify each ddl
         :param ddl_list: a list of ddl to prettify
@@ -91,8 +91,8 @@ class DDLService:
         ddl_list.sort(key=lambda ddl_: ddl_["date"])
 
         result = ""
-        for ddl in ddl_list:
-            result += DDLService.prettify_ddl(ddl, fancy) + "\n"
+        for i in range(len(ddl_list)):
+            result += (str(i) if print_index else "") + DDLService.prettify_ddl(ddl_list[i], fancy) + "\n"
 
         return result
 
@@ -177,6 +177,21 @@ class DDLService:
                 return 'Inserted successfully!'
             else:
                 return '[Error] Invalid Date.'
+        elif q_type == 'delete':
+            if len(query) > 2:
+                try:
+                    index = int(query[2])
+                except BaseException:
+                    return 'return [Error] Invalid syntax. Use \"ddl delete\" to check usage.'
+                self.load_ddl_from_file()
+                del self.ddl_list[index]
+                self.store_ddl()
+                return 'Deleted successfully!'
+            else:
+                ddls = '回复ddl delete <指定ddl编号> 来删除指定ddl哦\n'
+                for i in range(len(self.ddl_list)):
+                    ddls += str(i) + self.prettify_ddl_list(self.ddl_list, print_index=True) + '\n'
+                return ddls
         else:
             return "[Error] Invalid syntax. Use \"ddl help\" to check usage."
 
