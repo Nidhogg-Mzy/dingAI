@@ -4,6 +4,7 @@ import re
 from bs4 import BeautifulSoup
 from selenium import webdriver
 from UserOperation import UserOperation
+from time import sleep
 
 
 class Leetcode:
@@ -92,6 +93,51 @@ class Leetcode:
         # store the result as cache
         self.recent_submission = submission_details
         return submission_details
+
+    @staticmethod
+    def get_prob_detail_from_id(problem_id: str) -> dict:
+        """
+        Given problem id (english id in problem url), return the problem details
+        :param problem_id: Given problem id to check
+        :return: A dict containing the problem detail, {"name": "<problem name>", "id": "<problem id>",
+        "link": "<problem link>", "difficulty": "<problem difficulty>"}.
+        Return {} if the problem is not found.
+        """
+        # set up chrome driver
+        options = webdriver.ChromeOptions()
+        options.add_argument('--no-sandbox')  # fix problems on non-graphics ubuntu server
+        options.add_argument('--headless')
+        driver = webdriver.Chrome('./chromedriver', options=options)
+        url = f"https://leetcode-cn.com/problems/{problem_id}"
+        driver.get(url)
+        driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+        sleep(1)
+        page = driver.page_source.encode('utf-8')
+        soup = BeautifulSoup(page, 'html.parser')
+        driver.close()
+
+        # get the whole div of problem spec
+        problem_spec = soup.find('div', class_="description__2b0C")
+        # if not found, this id is invalid, or the crawler is down
+        if problem_spec is None or not problem_spec:
+            return {}
+
+        # filter problem title
+        def filter_prob_title(tag):
+            return tag.name == 'h4' and tag.has_attr('data-cypress')
+        problem_title = problem_spec.find(filter_prob_title)
+
+        # filter problem difficulty
+        def filter_prob_difficulty(tag):
+            return tag.name == 'span' and tag.has_attr('data-degree')
+        problem_difficulty = problem_spec.find(filter_prob_difficulty)
+
+        # return the details got
+        if problem_title is None or problem_difficulty is None:
+            return {}
+        else:
+            return {"name": problem_title.text, "id": problem_id,
+                    "link": url, "difficulty": problem_difficulty.text}
 
     @staticmethod
     def check_finish_problem(problem_id: str, username: str) -> list:
@@ -200,3 +246,8 @@ class Leetcode:
             '''
         else:
             return "[Error] Invalid syntax. Use \"leet help\" to check usage."
+
+
+if __name__ == '__main__':
+    print(Leetcode.get_prob_detail_from_id('shu-zu-zhong-zhong-fu-de-shu-zi-lcof'))
+    print(Leetcode.get_prob_detail_from_id('shu-zu-zhong-zhong-fu-de-shu-zi-lf'))
