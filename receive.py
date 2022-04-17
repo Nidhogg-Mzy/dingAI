@@ -9,7 +9,6 @@ from UserOperation import UserOperation
 import datetime
 import time
 from threading import Thread
-
 from multi_func_reply import Search, get_lyrics_pro
 
 ListenSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -77,7 +76,7 @@ def check_scheduled_task():
         if curr_time.hour == 8 and curr_time.minute == 0:
             ddl_service = DDLService()
             send_msg({'msg_type': 'group', 'number': '705716007', 'msg':
-                f'大家早上好呀, 又是新的一天，来看看今天还有哪些ddl呢>_<\n{ddl_service.process_query("ddl today".split(" "), "0")}'})
+                     f'大家早上好呀, 又是新的一天，来看看今天还有哪些ddl呢>_<\n{ddl_service.process_query("ddl today".split(" "), "0")}'})
             ddl_service.remove_expired_ddl()  # remove expired ddl timely
             time.sleep(60)
 
@@ -125,10 +124,10 @@ def rev_private_msg(rev):
             str1 = '歌词'
             song = rev['raw_message'].replace(str1, '')
             d = Search()
-            Id = d.search_song(song)
-            text = get_lyrics_pro(Id)
+            id = d.search_song(song)
+            text = get_lyrics_pro(id)
             qq = rev['sender']['user_id']
-            if Id is None:
+            if id is None:
                 send_msg(
                     {'msg_type': 'private', 'number': qq, 'msg': '呜呜呜人家找不到嘛'})
             else:
@@ -142,14 +141,14 @@ def rev_private_msg(rev):
             str1 = '歌曲'
             song = rev['raw_message'].replace(str1, '')
             d = Search()
-            Id = d.search_song(song)
+            id = d.search_song(song)
             qq = rev['sender']['user_id']
-            if Id is None:
+            if id is None:
                 send_msg(
                     {'msg_type': 'private', 'number': qq, 'msg': '呜呜呜人家找不到嘛'})
-            else :
+            else:
                 send_msg(
-                    {'msg_type': 'private', 'number': qq, 'msg': '[CQ:music,type=163,Id={}]'.format(Id)})
+                    {'msg_type': 'private', 'number': qq, 'msg': '[CQ:music,type=163,Id={}]'.format(id)})
         except BaseException:
             qq = rev['sender']['user_id']
             send_msg({'msg_type': 'private', 'number': qq, 'msg': '请在歌名前面加上空格。'})
@@ -188,7 +187,7 @@ def rev_group_msg(rev):
                 status_, username_ = user_op.get_leetcode(str(qq))
                 if not status_:
                     send_msg({'msg_type': 'group', 'number': group, 'msg':
-                        '我还不知道您的LeetCode账户名哦，试试 register <your leetcode username>, 或者在today 后面加上你要查找的用户名哦!'})
+                              '我还不知道您的LeetCode账户名哦，试试 register <your leetcode username>, 或者在today 后面加上你要查找的用户名哦!'})
                     return
                 username = username_
             # otherwise, we should get user name from user input
@@ -205,7 +204,7 @@ def rev_group_msg(rev):
                 status_, username_ = user_op.get_leetcode(str(qq))
                 if not status_:
                     send_msg({'msg_type': 'group', 'number': group, 'msg':
-                        '我还不知道您的LeetCode账户名哦，试试 register <your leetcode username>, 或者在check 后面加上你要查找的用户名哦!'})
+                              '我还不知道您的LeetCode账户名哦，试试 register <your leetcode username>, 或者在check 后面加上你要查找的用户名哦!'})
                     return
                 username = username_
             # otherwise, we should get user name from user input

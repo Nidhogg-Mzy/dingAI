@@ -1,10 +1,12 @@
-from binascii import hexlify
-
 import base64
 import json
 import os
 import requests
+from binascii import hexlify
+# TODO: Crypto is deprecated, use pycryptodome instead
+# https://stackoverflow.com/questions/19623267/importerror-no-module-named-crypto-cipher
 from Crypto.Cipher import AES
+
 
 headers = {
     'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) '
@@ -12,17 +14,20 @@ headers = {
 }
 
 
-class Encrypyed:
+class Encrypted:
 
     def __init__(self):
         self.pub_key = '010001'
-        self.modulus = '00e0b509f6259df8642dbc35662901477df22677ec152b5ff68ace615bb7b725152b3ab17a876aea8a5aa76d2e417629ec4ee341f56135fccf695280104e0312ecbda92557c93870114af6c9d05c4f7f0c3685b7a46bee255932575cce10b424d813cfe4875d3e82047b97ddef52741d546b8e289dc6935b3ece0462db0a22b8e7 '
+        self.modulus = '00e0b509f6259df8642dbc35662901477df22677ec152b5ff68ace615bb7b725152b3ab17a876aea8a5aa76d2e41' \
+                       '7629ec4ee341f56135fccf695280104e0312ecbda92557c93870114af6c9d05c4f7f0c3685b7a46bee255932575c' \
+                       'ce10b424d813cfe4875d3e82047b97ddef52741d546b8e289dc6935b3ece0462db0a22b8e7 '
         self.nonce = '0CoJUm6Qyw8W8jud'
 
-    def create_secret_key(self, size):
+    @staticmethod
+    def create_secret_key(size):
         return hexlify(os.urandom(size))[:16].decode('utf-8')
 
-
+    @staticmethod
     def aes_encrypt(text, key):
         iv = '0102030405060708'
         pad = 16 - len(text) % 16
@@ -32,28 +37,29 @@ class Encrypyed:
         result_str = base64.b64encode(result).decode('utf-8')
         return result_str
 
-    def rsa_encrpt(self, text, pubKey, modulus):
+    @staticmethod
+    def rsa_encrypt(text, pub_key, modulus):
         text = text[::-1]
-        rs = pow(int(hexlify(text.encode('utf-8')), 16), int(pubKey, 16), int(modulus, 16))
+        rs = pow(int(hexlify(text.encode('utf-8')), 16), int(pub_key, 16), int(modulus, 16))
         return format(rs, 'x').zfill(256)
 
     def work(self, ids, br=128000):
         text = {'ids': [ids], 'br': br, 'csrf_token': ''}
         text = json.dumps(text)
         i = self.create_secret_key(16)
-        encText = self.aes_encrypt(text, self.nonce)
-        encText = self.aes_encrypt(encText, i)
-        encSecKey = self.rsa_encrpt(i, self.pub_key, self.modulus)
-        data = {'params': encText, 'encSecKey': encSecKey}
+        enc_text = self.aes_encrypt(text, self.nonce)
+        enc_text = self.aes_encrypt(enc_text, i)
+        enc_sec_key = self.rsa_encrpt(i, self.pub_key, self.modulus)
+        data = {'params': enc_text, 'encSecKey': enc_sec_key}
         return data
 
     def search(self, text):
         text = json.dumps(text)
         i = self.create_secret_key(16)
-        encText = self.aes_encrypt(text, self.nonce)
-        encText = self.aes_encrypt(encText, i)
-        encSecKey = self.rsa_encrpt(i, self.pub_key, self.modulus)
-        data = {'params': encText, 'encSecKey': encSecKey}
+        enc_text = self.aes_encrypt(text, self.nonce)
+        enc_text = self.aes_encrypt(enc_text, i)
+        enc_sec_key = self.rsa_encrpt(i, self.pub_key, self.modulus)
+        data = {'params': enc_text, 'encSecKey': enc_sec_key}
         return data
 
 
@@ -61,7 +67,8 @@ class Search:
 
     def __init__(self):
         self.headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/55.0.2883.87 Safari/537.36',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/55.0.'
+                          '2883.87 Safari/537.36',
             'Host': 'music.163.com',
             'Referer': 'http://music.163.com/search/'}
         self.main_url = 'http://music.163.com/'
@@ -86,8 +93,8 @@ class Search:
         return song_id_list[0]
 
 
-def get_lyrics_pro(Id):
-    link = 'http://music.163.com/api/song/media?id=' + str(Id)
+def get_lyrics_pro(id):
+    link = 'http://music.163.com/api/song/media?id=' + str(id)
     web_data = requests.get(url=link, headers=headers).text
     json_data = json.loads(web_data)
     try:
