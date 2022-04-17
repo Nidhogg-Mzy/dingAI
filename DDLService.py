@@ -77,11 +77,14 @@ class DDLService:
                f"备注: {ddl['description']}"
 
     @staticmethod
+    # TODO: num_msg_group is not a good idea (especially passing None when we don't need group print), other solutions?
     def prettify_ddl_list(ddl_list: list, fancy=True, print_index=False, num_msggroup=None) -> str:
         """
         Prettify a list of ddl, use prettify_ddl to prettify each ddl
         :param ddl_list: a list of ddl to prettify
         :param fancy: if True, add a horizontal line above each ddl
+        :param print_index: if True, add index before each ddl
+        :param num_msggroup: used when print ddl in groups.
         :return: a string that is a pretty version of the list of ddl
         """
         if (ddl_list is None) or (not ddl_list):
@@ -116,17 +119,19 @@ class DDLService:
         # now, process queries
         q_type = query[1]  # query type
         if q_type == "today":
-            toreturn.append("ddl due today: \n" + \
+            toreturn.append("ddl due today: \n" +
                             DDLService.prettify_ddl_list(
-                                self.get_ddl(lambda ddl: ddl["date"] == str(datetime.date.today()))))
+                                self.get_ddl(lambda ddl: ddl["date"] == str(datetime.date.today()))
+                            ))
         elif q_type == "tomorrow" or q_type == "tmr":
-            toreturn.append("ddl due tomorrow: \n" + \
+            toreturn.append("ddl due tomorrow: \n" +
                             DDLService.prettify_ddl_list(
                                 self.get_ddl(lambda ddl: ddl["date"] == str(
-                                    datetime.date.today() + datetime.timedelta(days=1)))))
+                                    datetime.date.today() + datetime.timedelta(days=1)))
+                            ))
         # search ddl for next week
         elif q_type == "week":
-            toreturn.append("ddl due in a week: \n" + \
+            toreturn.append("ddl due in a week: \n" +
                             DDLService.prettify_ddl_list(
                                 self.get_ddl(lambda ddl:
                                              str(datetime.date.today() + datetime.timedelta(days=8))
@@ -134,13 +139,13 @@ class DDLService:
                             ))
         # else if the q_type is a date
         elif re.search(r"^\d{4}-\d{2}-\d{2}$", q_type):
-            toreturn.append("ddl due on " + q_type + ": \n" + \
+            toreturn.append("ddl due on " + q_type + ": \n" +
                             DDLService.prettify_ddl_list(self.get_ddl(
                                 lambda ddl: ddl["date"] == str(datetime.datetime.strptime(q_type, "%Y-%m-%d").date()))
                             ))
         # search ddl for the user performed query
         elif q_type == "my":
-            toreturn.append(f"ddl due in a week for [CQ:at,qq={user_qq}]: \n" + \
+            toreturn.append(f"ddl due in a week for [CQ:at,qq={user_qq}]: \n" +
                             DDLService.prettify_ddl_list(self.get_ddl(
                                 lambda ddl: (str(user_qq) in ddl["participants"]) and
                                             str(datetime.date.today() + datetime.timedelta(days=8))
@@ -148,12 +153,12 @@ class DDLService:
                             ))
         # syntax help
         elif q_type == "help":
-            toreturn.append("[ddl today]: show ddl due today\n" + \
-                            "[ddl tomorrow][ddl tmr]: show ddl due tomorrow\n" + \
-                            "[ddl week]: show ddl due in a week\n" + \
-                            "[ddl <date>]: show ddl due on a certain date (format: \"yyyy-mm-dd\")\n" + \
+            toreturn.append("[ddl today]: show ddl due today\n" +
+                            "[ddl tomorrow][ddl tmr]: show ddl due tomorrow\n" +
+                            "[ddl week]: show ddl due in a week\n" +
+                            "[ddl <date>]: show ddl due on a certain date (format: \"yyyy-mm-dd\")\n" +
                             "[ddl my]: show ddl due in a week for you\n" + "[ddl insert]: insert a new ddl\n" +
-                            "[ddl delete]: delete a ddl by its index\n" + \
+                            "[ddl delete]: delete a ddl by its index\n" +
                             "[ddl help]: show this help")
         # insert a new ddl
         elif q_type == 'insert':

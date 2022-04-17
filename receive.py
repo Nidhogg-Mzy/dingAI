@@ -205,7 +205,7 @@ def rev_group_msg(rev):
             service = DDLService()
             toreturn = service.process_query(message_parts[1:], qq)
             for s in toreturn:
-                send_msg({'msg_type': 'group', 'number': group,'msg': f"[CQ:at,qq={qq}]\n" + s})
+                send_msg({'msg_type': 'group', 'number': group, 'msg': f"[CQ:at,qq={qq}]\n" + s})
                 time.sleep(1)
         else:
             content = ""
