@@ -3,8 +3,6 @@ import json
 import os
 import requests
 from binascii import hexlify
-# TODO: Crypto is deprecated, use pycryptodome instead
-# https://stackoverflow.com/questions/19623267/importerror-no-module-named-crypto-cipher
 from Crypto.Cipher import AES
 
 
