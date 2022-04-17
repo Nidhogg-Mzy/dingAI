@@ -77,26 +77,31 @@ class DDLService:
                f"备注: {ddl['description']}"
 
     @staticmethod
-    # TODO: num_msg_group is not a good idea (especially passing None when we don't need group print), other solutions?
-    def prettify_ddl_list(ddl_list: list, fancy=True, print_index=False, num_msggroup=None) -> str:
+    def prettify_ddl_list(ddl_list: list, fancy=True, indices=None) -> str:
         """
         Prettify a list of ddl, use prettify_ddl to prettify each ddl
         :param ddl_list: a list of ddl to prettify
         :param fancy: if True, add a horizontal line above each ddl
-        :param print_index: if True, add index before each ddl
-        :param num_msggroup: used when print ddl in groups.
+        :param indices: None if don't need to print index, otherwise a list of indices of each ddl in given ddl_list,
+        notice the length of indices should be the same as ddl_list
         :return: a string that is a pretty version of the list of ddl
         """
         if (ddl_list is None) or (not ddl_list):
             return "Hooray! You have no ddl."
 
+        # check len(ddl_list) == len(indices)
+        if indices is not None:
+            assert len(ddl_list) == len(indices), "[Internal Error] In 'prettify_ddl_list', " \
+                                                  "The length of ddl_list and indices should match."
+
         # The ddl in json is not sorted. We want to output them from the earliest to the latest.
         ddl_list.sort(key=lambda ddl_: ddl_["date"])
 
         result = ""
-        for i in range(len(ddl_list)):
-            result += (str(i + num_msggroup) if print_index else "") + DDLService.prettify_ddl(ddl_list[i],
-                                                                                               fancy) + "\n"
+        ddl_len = len(ddl_list)
+        for i in range(ddl_len):
+            result += f"{f'({str(indices[i])})' if indices is not None else ''}" \
+                      f"{DDLService.prettify_ddl(ddl_list[i], fancy)}\n"
 
         return result
 
@@ -191,7 +196,6 @@ class DDLService:
             if len(query) > 2:
                 try:
                     index = int(query[2])
-                    self.load_ddl_from_file()
                     if index not in range(len(self.ddl_list)):
                         toreturn.append("[Error] Index out of range.")
                     else:
@@ -201,10 +205,15 @@ class DDLService:
                 except ValueError:
                     toreturn.append('[Error] Invalid syntax. Use \"ddl delete\" to check usage.')
             else:
-                ddls = '回复ddl delete <指定ddl编号> 来删除指定ddl哦\n'
-                toreturn.append(ddls)
-                for i in range(0, len(self.ddl_list), 2):
-                    ddls = self.prettify_ddl_list(self.ddl_list[i:i + 2], print_index=True, num_msggroup=i) + '\n'
+                ddl_len = len(self.ddl_list)
+                if ddl_len == 0:
+                    toreturn.append("[Error] 你已经没有ddl可删了哦！")
+                else:
+                    toreturn.append('回复ddl delete <指定ddl编号> 来删除指定ddl哦\n')
+
+                for i in range(0, ddl_len, 2):
+                    upper_bound = min(i + 2, ddl_len)
+                    ddls = f"{self.prettify_ddl_list(self.ddl_list[i: upper_bound], indices=range(i, upper_bound))}"
                     toreturn.append(ddls)
         else:
             toreturn.append("[Error] Invalid syntax. Use \"ddl help\" to check usage.")
