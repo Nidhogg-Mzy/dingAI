@@ -50,10 +50,10 @@ class Leetcode:
     @staticmethod
     def get_recent_passed_submission(username: str, debug=False) -> list:
         """
-        Get the recent PASSED submission records for a user, only get passed ones.
+        Get the recent PASSED submission records for a user, we can only get passed ones.
         :param username: The leetcode username of the user
         :param debug: If True, print debug messages
-        :return: A list, each item is ['problem name', 'problem id', 'language', 'time']
+        :return: A list, each item is ['problem name']
         """
         url = f"https://leetcode-cn.com/u/{username}/"
 
@@ -65,34 +65,26 @@ class Leetcode:
         options.add_argument('--headless')
         driver = webdriver.Chrome('./chromedriver', options=options)
         driver.get(url)
+        sleep(3)  # wait for the webpage to load
         page = driver.page_source.encode('utf-8')
         soup = BeautifulSoup(page, 'html.parser')
         driver.close()
         if debug:
             print(soup.prettify())
 
-        sub_lists = soup.find_all('div', class_='css-ueaw7d-StackRow ekb1c6d5')
-        submission_details = []
-        for sub in sub_lists:
-            problem = sub.find('a', class_="css-1e9rbo3-Link e14iayf26")
-            prob_name = problem.text
-            prob_id = problem['href'].split('/')[-2]
+        passed_lists = soup.find_all('span', class_='text-label-1 dark:text-dark-label-1 font-medium line-clamp-1')
+        passed_problems = []
+        for passed in passed_lists:
+            problem_name = passed.text
+            if problem_name not in passed_problems:
+                passed_problems.append(problem_name)
+                if debug:
+                    print(f"Passed: {problem_name}, added to list")
 
-            lang = sub.find('span', class_="css-1n3niua-Lang e14iayf210").text
-            result = sub.find('span', class_="e14iayf29 css-1ew5sfu-BasicTag-StyledTag e4dtce60")
-            # if result is None, this submission is not passed
-            if result is None:
-                continue
-            # result = result.span.text
-            time = sub.find('div', class_="css-ex16d6-Timestamp e14iayf25").text
-
-            this_detail = [prob_name, prob_id, lang, time]
-            if debug:
-                print(this_detail)
-            submission_details.append(this_detail)
-        # store the result as cache
-        self.recent_submission = submission_details
-        return submission_details
+        if debug:
+            print(passed_problems)
+            print(f"\n\n=====\ntotal length: {len(passed_problems)}")
+        return passed_problems
 
     @staticmethod
     def get_prob_detail_from_id(problem_id: str) -> dict:
@@ -140,21 +132,16 @@ class Leetcode:
                     "link": url, "difficulty": problem_difficulty.text}
 
     @staticmethod
-    def check_finish_problem(problem_id: str, username: str) -> list:
+    def check_finish_problem(problem_name: str, username: str, debug: bool = False) -> bool:
         """
-        Given problem id (english id in problem url), check if the user has passed the problem.
-        Return a list, containing all languages that the user used to pass the problem.
-        :param problem_id: Given problem id to check
+        Given problem name (whole name, not id), check if the user has passed the problem.
+        :param problem_name: Given full problem name to check, not problem id
         :param username: The leetcode username of the user
-        :param force_refresh: If True, force refresh the result, do not read from cache
-        :return: A list of languages that the user used to pass the problem
+        :param debug: If True, print the debug info
+        :return: True, if the user passed the problem
         """
-        passed_record = Leetcode.get_recent_passed_submission(username=username, debug=True)
-        result_list = []
-        for record in passed_record:
-            if record[1] == problem_id:
-                result_list.append(record[2])
-        return result_list
+        passed_record = Leetcode.get_recent_passed_submission(username=username, debug=debug)
+        return problem_name in passed_record
 
     def process_query(self, query: list, user_qq: str) -> str:
         """
@@ -249,5 +236,8 @@ class Leetcode:
 
 
 if __name__ == '__main__':
-    print(Leetcode.get_prob_detail_from_id('shu-zu-zhong-zhong-fu-de-shu-zi-lcof'))
-    print(Leetcode.get_prob_detail_from_id('shu-zu-zhong-zhong-fu-de-shu-zi-lf'))
+    # print(Leetcode.get_prob_detail_from_id('shu-zu-zhong-zhong-fu-de-shu-zi-lcof'))
+    # print(Leetcode.get_prob_detail_from_id('shu-zu-zhong-zhong-fu-de-shu-zi-lf'))
+
+    print(Leetcode.check_finish_problem('190. 颠倒二进制位', 'enor2017', debug=False))
+    print(Leetcode.check_finish_problem('1. 两数之和', 'enor2017', debug=False))
