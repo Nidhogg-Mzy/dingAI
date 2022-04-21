@@ -2,9 +2,9 @@ import datetime
 import json
 import re
 from bs4 import BeautifulSoup
-from selenium import webdriver
 from UserOperation import UserOperation
 from time import sleep
+from WebDriver import WebDriver
 
 
 class Leetcode:
@@ -56,19 +56,12 @@ class Leetcode:
         :return: A list, each item is ['problem name']
         """
         url = f"https://leetcode-cn.com/u/{username}/"
-
-        # we need to use web-driver to open the webpage
-        # The webpage got from requests is not complete
-        # use a headless-chrome as webdriver
-        options = webdriver.ChromeOptions()
-        options.add_argument('--no-sandbox')  # fix problems on non-graphics ubuntu server
-        options.add_argument('--headless')
-        driver = webdriver.Chrome('./chromedriver', options=options)
+        driver = WebDriver.get_driver()
         driver.get(url)
-        sleep(3)  # wait for the webpage to load
+        sleep(2)  # wait for the webpage to load
         page = driver.page_source.encode('utf-8')
         soup = BeautifulSoup(page, 'html.parser')
-        driver.close()
+
         if debug:
             print(soup.prettify())
 
@@ -96,17 +89,13 @@ class Leetcode:
         Return {} if the problem is not found.
         """
         # set up chrome driver
-        options = webdriver.ChromeOptions()
-        options.add_argument('--no-sandbox')  # fix problems on non-graphics ubuntu server
-        options.add_argument('--headless')
-        driver = webdriver.Chrome('./chromedriver', options=options)
+        driver = WebDriver.get_driver()
         url = f"https://leetcode-cn.com/problems/{problem_id}"
         driver.get(url)
         driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
         sleep(1)
         page = driver.page_source.encode('utf-8')
         soup = BeautifulSoup(page, 'html.parser')
-        driver.close()
 
         # get the whole div of problem spec
         problem_spec = soup.find('div', class_="description__2b0C")
