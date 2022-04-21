@@ -4,7 +4,7 @@ class WebDriver:
     """
     This class provides a web driver for web requests.
     The driver should be only one at the same time, and can open multiple webpages.
-    It should also be refreshed timely to avoid strange problems.
+    TODO: It should also be refreshed timely to avoid strange problems.
     Note this class is not thread-safe.
     """
     driver = None  # The web driver
