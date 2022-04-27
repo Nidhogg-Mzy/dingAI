@@ -133,7 +133,7 @@ def rev_private_msg(rev):
             else:
                 send_msg(
                     {'msg_type': 'private', 'number': qq, 'msg': text})
-        except BaseException:
+        except BaseException:   # TODO
             qq = rev['sender']['user_id']
             send_msg({'msg_type': 'private', 'number': qq, 'msg': '请在歌名前面加上空格。'})
     elif rev['raw_message'].split(' ')[0] == '歌曲':
@@ -149,7 +149,7 @@ def rev_private_msg(rev):
             else:
                 send_msg(
                     {'msg_type': 'private', 'number': qq, 'msg': '[CQ:music,type=163,Id={}]'.format(id)})
-        except BaseException:
+        except BaseException:   # TODO
             qq = rev['sender']['user_id']
             send_msg({'msg_type': 'private', 'number': qq, 'msg': '请在歌名前面加上空格。'})
     else:

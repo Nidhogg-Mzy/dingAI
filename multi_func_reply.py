@@ -47,7 +47,7 @@ class Encrypted:
         i = self.create_secret_key(16)
         enc_text = self.aes_encrypt(text, self.nonce)
         enc_text = self.aes_encrypt(enc_text, i)
-        enc_sec_key = self.rsa_encrpt(i, self.pub_key, self.modulus)
+        enc_sec_key = self.rsa_encrypt(i, self.pub_key, self.modulus)
         data = {'params': enc_text, 'encSecKey': enc_sec_key}
         return data
 
@@ -56,7 +56,7 @@ class Encrypted:
         i = self.create_secret_key(16)
         enc_text = self.aes_encrypt(text, self.nonce)
         enc_text = self.aes_encrypt(enc_text, i)
-        enc_sec_key = self.rsa_encrpt(i, self.pub_key, self.modulus)
+        enc_sec_key = self.rsa_encrypt(i, self.pub_key, self.modulus)
         data = {'params': enc_text, 'encSecKey': enc_sec_key}
         return data
 
@@ -72,7 +72,7 @@ class Search:
         self.main_url = 'http://music.163.com/'
         self.session = requests.Session()
         self.session.headers = self.headers
-        self.ep = Encrypyed()
+        self.ep = Encrypted()
 
     def search_song(self, search_content, search_type=1, limit=10):
         song_id_list = []
