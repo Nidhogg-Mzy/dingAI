@@ -14,12 +14,9 @@ from multi_func_reply import Search
 ListenSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 ListenSocket.bind(('127.0.0.1', 5701))
 ListenSocket.listen(100)
-bot_qq_account = 3292297816  # st_bot: 2585899559  # bot: 3292297816
 
-HttpResponseHeader = '''HTTP/1.1 200 OK\r\n
-Content-Type: text/html\r\n\r\n
-'''
-
+# const variable should be UPPER_CASE style
+BOT_QQ_ACCOUNT = 3292297816  # st_bot: 2585899559  # bot: 3292297816
 
 def send_msg(resp_dict):
     client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -60,7 +57,10 @@ def rev_msg():  # json or None
     client, address = ListenSocket.accept()
     request = client.recv(4096).decode('utf-8', 'ignore')
     rev_json = request_to_json(request)
-    client.sendall(HttpResponseHeader.encode(encoding='utf-8'))
+    http_response_header = '''HTTP/1.1 200 OK\r\n
+    Content-Type: text/html\r\n\r\n
+    '''
+    client.sendall(http_response_header.encode(encoding='utf-8'))
     client.close()
     return rev_json
 
@@ -148,7 +148,7 @@ def rev_private_msg(rev):
             if music_id is None:
                 send_msg({'msg_type': 'private', 'number': qq, 'msg': '呜呜呜人家找不到嘛，换首歌试试吧'})
             else:
-                send_msg({'msg_type': 'private', 'number': qq, 'msg': '[CQ:music,type=163,id={}]'.format(music_id)})
+                send_msg({'msg_type': 'private', 'number': qq, 'msg': f'[CQ:music,type=163,id={music_id}]'})
     else:
         qq = rev['sender']['user_id']
         content = rev['raw_message']
@@ -161,7 +161,7 @@ def rev_private_msg(rev):
 
 def rev_group_msg(rev):
     group = rev['group_id']
-    if f'[CQ:at,qq={bot_qq_account}]' in rev["raw_message"]:
+    if f'[CQ:at,qq={BOT_QQ_ACCOUNT}]' in rev["raw_message"]:
         qq = rev['sender']['user_id']
         message_parts = rev['raw_message'].split(' ')
         if message_parts[1] == '在吗':
@@ -255,11 +255,11 @@ def message_process_tasks():
                 # GROUP MESSAGE
                 elif received["message_type"] == "group":
                     rev_group_msg(received)
-        except TypeError:
+        except TypeError as e:
             # This error will be reported to developers via qq private message.
-            error_msg = f'[Internal Error] TypeError while doing "received["post_type"]", ' + \
-                        f'where "received" is None. If the message received is too long, try ' + \
-                        f'release the length restriction. (currently 4096)'
+            error_msg = '[Internal Error] TypeError while doing "received["post_type"]", ' + \
+                        'where "received" is None. If the message received is too long, try ' + \
+                        f'release the length restriction. (currently 4096)\n{e}'
             send_msg({'msg_type': 'private', 'number': '2220038250', 'msg': error_msg})
             send_msg({'msg_type': 'private', 'number': '3429582673', 'msg': error_msg})
             # also record in log
