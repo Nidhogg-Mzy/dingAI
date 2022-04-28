@@ -1,15 +1,15 @@
 import json
 import random
 import socket
+import time
+import datetime
+from threading import Thread
 import requests
 import Leetcode
 import Question
 from DDLService import DDLService
 from UserOperation import UserOperation
-import datetime
-import time
-from threading import Thread
-from multi_func_reply import Search, get_lyrics_pro
+from multi_func_reply import Search
 
 ListenSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 ListenSocket.bind(('127.0.0.1', 5701))
@@ -107,14 +107,17 @@ def get_answer(text):
     return answer
 
 
+# reply messages for private/group
+reply_msg = ['在的呀小可爱', '一直在的呀', '呜呜呜找人家什么事嘛', '我无处不在', 'always here', '在的呀',
+             '在啊，你要跟我表白吗', '不要着急，小可爱正在赶来的路上，请准备好零食和饮料耐心等待哦', '有事起奏，无事退朝',
+             '你先说什么事，我再决定在不在', '搁外面躲债呢，你啥事啊直接说', '在呢，PDD帮我砍一刀呗', '爱卿，何事',
+             '只要你找我，我无时无刻不在', '我在想，你累不累，毕竟你在我心里跑一天了', '想我了，就直说嘛',
+             '我在想，用多少度的水泡你比较合适', '你看不出来吗，我在等你找我啊']
+
+
 def rev_private_msg(rev):
     if rev['raw_message'] == '在吗':
         qq = rev['sender']['user_id']
-        reply_msg = ['在的呀小可爱', '一直在的呀', '呜呜呜找人家什么事嘛', '我无处不在', 'always here', '在的呀',
-                     '在啊，你要跟我表白吗', '不要着急，小可爱正在赶来的路上，请准备好零食和饮料耐心等待哦', '有事起奏，无事退朝',
-                     '你先说什么事，我再决定在不在', '搁外面躲债呢，你啥事啊直接说', '在呢，PDD帮我砍一刀呗', '爱卿，何事',
-                     '只要你找我，我无时无刻不在', '我在想，你累不累，毕竟你在我心里跑一天了', '想我了，就直说嘛',
-                     '我在想，用多少度的水泡你比较合适', '你看不出来吗，我在等你找我啊']
         send_msg({'msg_type': 'private', 'number': qq, 'msg': reply_msg[random.randint(0, len(reply_msg) - 1)]})
     elif rev['raw_message'] == '你在哪':
         qq = rev['sender']['user_id']
@@ -122,32 +125,30 @@ def rev_private_msg(rev):
     elif rev['raw_message'].split(' ')[0] == '歌词':
         qq = rev['sender']['user_id']
         if len(rev['raw_message'].split(' ')) < 2:
-            send_msg({'msg_type': 'private', 'number': qq, 'msg': '请输入：歌曲 + <歌曲名>来获得歌曲链接哦'})
+            send_msg({'msg_type': 'private', 'number': qq, 'msg': '请输入：歌曲<空格><歌曲名>来获得歌曲链接哦'})
         else:
-            str1 = '歌词'
-            song = rev['raw_message'].replace(str1, '')
+            song = rev['raw_message'].replace('歌词', '')
             d = Search()
-            id = d.search_song(song)
-            text = get_lyrics_pro(id)
-            if id is None:
+            music_id = d.search_song(song)
+            if music_id is None:
                 send_msg(
-                    {'msg_type': 'private', 'number': qq, 'msg': '呜呜呜人家找不到嘛'})
+                    {'msg_type': 'private', 'number': qq, 'msg': '呜呜呜人家找不到嘛，换首歌试试吧'})
             else:
+                text = Search.get_lyrics(music_id)
                 send_msg(
                     {'msg_type': 'private', 'number': qq, 'msg': text})
     elif rev['raw_message'].split(' ')[0] == '歌曲':
         qq = rev['sender']['user_id']
         if len(rev['raw_message'].split(' ')) < 2:
-            send_msg({'msg_type': 'private', 'number': qq, 'msg': '请输入：歌曲 + <歌曲名>来获得歌曲链接哦'})
+            send_msg({'msg_type': 'private', 'number': qq, 'msg': '请输入：歌曲<空格><歌曲名>来获得歌曲链接哦'})
         else:
-            str1 = '歌曲'
-            song = rev['raw_message'].replace(str1, '')
+            song = rev['raw_message'].replace('歌曲', '')
             d = Search()
-            id = d.search_song(song)
-            if id is None:
+            music_id = d.search_song(song)
+            if music_id is None:
                 send_msg({'msg_type': 'private', 'number': qq, 'msg': '呜呜呜人家找不到嘛，换首歌试试吧'})
             else:
-                send_msg({'msg_type': 'private', 'number': qq, 'msg': '[CQ:music,type=163,id={}]'.format(id)})
+                send_msg({'msg_type': 'private', 'number': qq, 'msg': '[CQ:music,type=163,id={}]'.format(music_id)})
     else:
         qq = rev['sender']['user_id']
         content = rev['raw_message']
@@ -164,11 +165,6 @@ def rev_group_msg(rev):
         qq = rev['sender']['user_id']
         message_parts = rev['raw_message'].split(' ')
         if message_parts[1] == '在吗':
-            reply_msg = ['在的呀小可爱', '一直在的呀', '呜呜呜找人家什么事嘛', '我无处不在', 'always here', '在的呀',
-                         '在啊，你要跟我表白吗', '不要着急，小可爱正在赶来的路上，请准备好零食和饮料耐心等待哦', '有事起奏，无事退朝',
-                         '你先说什么事，我再决定在不在', '搁外面躲债呢，你啥事啊直接说', '在呢，PDD帮我砍一刀呗', '爱卿，何事',
-                         '只要你找我，我无时无刻不在', '我在想，你累不累，毕竟你在我心里跑一天了', '想我了，就直说嘛',
-                         '我在想，用多少度的水泡你比较合适', '你看不出来吗，我在等你找我啊']
             send_msg({'msg_type': 'group', 'number': group, 'msg': reply_msg[random.randint(0, len(reply_msg) - 1)]})
             # send_msg({'msg_type': 'group', 'number': group, 'msg': '[CQ:poke,qq={}]'.format(qq)})
         elif message_parts[1] == '题来':
