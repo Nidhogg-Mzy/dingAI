@@ -135,7 +135,7 @@ def rev_private_msg(rev):
                     {'msg_type': 'private', 'number': qq, 'msg': text})
         except BaseException:   # TODO
             qq = rev['sender']['user_id']
-            send_msg({'msg_type': 'private', 'number': qq, 'msg': '请在歌名前面加上空格。'})
+            send_msg({'msg_type': 'private', 'number': qq, 'msg': '请输入：歌词 + <歌曲名>来获得歌词哦'})
     elif rev['raw_message'].split(' ')[0] == '歌曲':
         try:
             str1 = '歌曲'
@@ -145,13 +145,13 @@ def rev_private_msg(rev):
             qq = rev['sender']['user_id']
             if id is None:
                 send_msg(
-                    {'msg_type': 'private', 'number': qq, 'msg': '呜呜呜人家找不到嘛'})
+                    {'msg_type': 'private', 'number': qq, 'msg': '呜呜呜人家找不到嘛，换首歌试试吧'})
             else:
                 send_msg(
-                    {'msg_type': 'private', 'number': qq, 'msg': '[CQ:music,type=163,Id={}]'.format(id)})
+                    {'msg_type': 'private', 'number': qq, 'msg': '[CQ:music,type=163,id={}]'.format(id)})
         except BaseException:   # TODO
             qq = rev['sender']['user_id']
-            send_msg({'msg_type': 'private', 'number': qq, 'msg': '请在歌名前面加上空格。'})
+            send_msg({'msg_type': 'private', 'number': qq, 'msg': '请输入：歌曲 + <歌曲名>来获得歌曲链接哦'})
     else:
         qq = rev['sender']['user_id']
         content = rev['raw_message']
