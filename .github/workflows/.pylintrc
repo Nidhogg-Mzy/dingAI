@@ -139,7 +139,13 @@ disable=print-statement,
         deprecated-sys-function,
         exception-escape,
         comprehension-escape,
-        import-error
+        import-error,
+        too-many-locals,
+        missing-class-docstring,
+        missing-function-docstring,
+        missing-module-docstring,
+        too-few-public-methods,
+        too-many-statements
 
 # Enable the message, report, category or checker with the given id(s). You can
 # either give multiple identifier separated by comma (,) or put this option
@@ -229,7 +235,7 @@ attr-naming-style=snake_case
 
 # Regular expression matching correct attribute names. Overrides attr-naming-
 # style.
-#attr-rgx=
+attr-rgx=^[a-z][a-z0-9]*((_[a-z0-9]+)*)?$
 
 # Bad variable names which should always be refused, separated by a comma.
 bad-names=foo,
@@ -321,7 +327,7 @@ variable-naming-style=snake_case
 
 # Regular expression matching correct variable names. Overrides variable-
 # naming-style.
-#variable-rgx=
+variable-rgx=^[a-z][a-z0-9]*((_[a-z0-9]+)*)?$
 
 
 [SPELLING]
