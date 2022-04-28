@@ -327,7 +327,8 @@ variable-naming-style=snake_case
 
 # Regular expression matching correct variable names. Overrides variable-
 # naming-style.
-variable-rgx=^[a-z][a-z0-9]*((_[a-z0-9]+)*)?$
+# allow ends with underscore indicating local variable to avoid name conflicting
+variable-rgx=^[a-z][a-z0-9]*((_[a-z0-9]*)*)?$   
 
 
 [SPELLING]
