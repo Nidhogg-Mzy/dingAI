@@ -120,38 +120,34 @@ def rev_private_msg(rev):
         qq = rev['sender']['user_id']
         send_msg({'msg_type': 'private', 'number': qq, 'msg': '我无处不在'})
     elif rev['raw_message'].split(' ')[0] == '歌词':
-        try:
+        qq = rev['sender']['user_id']
+        if len(rev['raw_message'].split(' ')) < 2:
+            send_msg({'msg_type': 'private', 'number': qq, 'msg': '请输入：歌曲 + <歌曲名>来获得歌曲链接哦'})
+        else:
             str1 = '歌词'
             song = rev['raw_message'].replace(str1, '')
             d = Search()
             id = d.search_song(song)
             text = get_lyrics_pro(id)
-            qq = rev['sender']['user_id']
             if id is None:
                 send_msg(
                     {'msg_type': 'private', 'number': qq, 'msg': '呜呜呜人家找不到嘛'})
             else:
                 send_msg(
                     {'msg_type': 'private', 'number': qq, 'msg': text})
-        except BaseException:   # TODO
-            qq = rev['sender']['user_id']
-            send_msg({'msg_type': 'private', 'number': qq, 'msg': '请输入：歌词 + <歌曲名>来获得歌词哦'})
     elif rev['raw_message'].split(' ')[0] == '歌曲':
-        try:
+        qq = rev['sender']['user_id']
+        if len(rev['raw_message'].split(' ')) < 2:
+            send_msg({'msg_type': 'private', 'number': qq, 'msg': '请输入：歌曲 + <歌曲名>来获得歌曲链接哦'})
+        else:
             str1 = '歌曲'
             song = rev['raw_message'].replace(str1, '')
             d = Search()
             id = d.search_song(song)
-            qq = rev['sender']['user_id']
             if id is None:
-                send_msg(
-                    {'msg_type': 'private', 'number': qq, 'msg': '呜呜呜人家找不到嘛，换首歌试试吧'})
+                send_msg({'msg_type': 'private', 'number': qq, 'msg': '呜呜呜人家找不到嘛，换首歌试试吧'})
             else:
-                send_msg(
-                    {'msg_type': 'private', 'number': qq, 'msg': '[CQ:music,type=163,id={}]'.format(id)})
-        except BaseException:   # TODO
-            qq = rev['sender']['user_id']
-            send_msg({'msg_type': 'private', 'number': qq, 'msg': '请输入：歌曲 + <歌曲名>来获得歌曲链接哦'})
+                send_msg({'msg_type': 'private', 'number': qq, 'msg': '[CQ:music,type=163,id={}]'.format(id)})
     else:
         qq = rev['sender']['user_id']
         content = rev['raw_message']

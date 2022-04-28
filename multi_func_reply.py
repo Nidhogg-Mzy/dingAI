@@ -81,14 +81,18 @@ class Search:
         data = self.ep.search(text)
         resp = self.session.post(url, data=data)
         result = resp.json()
-        if result['result']['songCount'] <= 0:
+        try:
+            if result['result']['songCount'] <= 0:
+                return None
+            else:
+                songs = result['result']['songs']
+                for song in songs:
+                    song_id, song_name, singer, alia = song['id'], song['name'], song['ar'][0]['name'], song['al'][
+                        'name']
+                    song_id_list.append(song_id)
+            return song_id_list[0]
+        except KeyError:
             return None
-        else:
-            songs = result['result']['songs']
-            for song in songs:
-                song_id, song_name, singer, alia = song['id'], song['name'], song['ar'][0]['name'], song['al']['name']
-                song_id_list.append(song_id)
-        return song_id_list[0]
 
 
 def get_lyrics_pro(id):
