@@ -2,53 +2,49 @@
 all Questions should appear like :
 
 {
-    "2022/03/01": {
-        "problem_name": "1. 两数之和",
-        "problem_id": "two_sum",
-        "problem_link": "https://....",
-        "problem_difficulty": "简单",
-        "problem_description": "哈希表，二分查找",
-        "participants": "enor2017"
-    }
-}
+      "name": "978. 最长湍流子数组",
+      "id": "longest-turbulent-subarray",
+      "link": "https://leetcode-cn.com/problems/longest-turbulent-subarray/",
+      "difficulty": "中等",
+      "description": "dp",
+      "participants": ["enor2017"]
+},
 
 """
-
+from Leetcode import Leetcode
 
 class Question:
-    def __init__(self, problem_date: str, problem_name: str, problem_id: str, problem_link: str,
-                 problem_diifficulty: str, problem_description: str, participants: dict):
-        self.date = problem_date
-        self.name = problem_name
+    def __init__(self, problem_id: str, problem_description: str,
+                 problem_name: str = None,  problem_link: str = None,
+                 problem_difficulty: str = None, participants: list = []):
+        """
+        This constructor is used to init a question. Some fields are optional, if
+        not provided, it can automatically fetch them from Leetcode API.
+        :param problem_id: The unique problem id of question
+        :param problem_description: The description (tags) of the problem, usually manually defined
+        :param problem_name: (Optional) The name of the problem
+        :param problem_link: (Optional) The link of the problem
+        :param problem_difficulty: (Optional) The difficulty of the problem
+        :param participants: (Optional) The list of participants who have solved the problem, if not provided,
+        it will init an empty list.
+        :exception: ValueError if the problem_id is not valid
+        """
         self.id = problem_id
-        self.link = problem_link
-        self.difficulty = problem_diifficulty
         self.description = problem_description
         self.participants = participants
+        details = Leetcode.get_prob_detail_from_id(problem_id)
+        if not details:
+            raise ValueError(f"Cannot find problem whose id is: {problem_id}.")
+        self.name = details["name"] if problem_name is None else problem_name
+        self.link = details["link"] if problem_link is None else problem_link
+        self.difficulty = details["difficulty"] if problem_difficulty is None else problem_difficulty
 
-    def getDate(self) -> str:
-        return self.date
+    def __str__(self) -> str:
+        return f"""
+        题目名称: {self.name}
+        题目链接: {self.link}
+        题目难度: {self.difficulty}
+        题目表填: {self.description}
+        已完成的参与者: {self.participants}
+        """
 
-    def getName(self) -> str:
-        return self.name
-
-    def getId(self) -> str:
-        return self.id
-
-    def getLink(self) -> str:
-        return self.link
-
-    def getDifficulty(self) -> str:
-        return self.difficulty
-
-    def getDescription(self) -> str:
-        return self.description
-
-    def getParticipants(self) -> dict:
-        return self.participants
-
-    def toString(self) -> str:
-        result = self.date + ":\n" + "今日题目 : " + self.name + "\n" + \
-                 "题目链接 : " + self.link + "\n" + \
-                 "难度 : " + self.difficulty + "\n" + \
-                 "标签 : " + self.description + "\n"
