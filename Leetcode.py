@@ -171,14 +171,20 @@ class Leetcode:
             status_, username_ = user_op.get_leetcode(str(user_qq))
             if not status_:
                 return '我还不知道您的LeetCode账户名哦，试试leet register <your leetcode username>'
-            question_today = self.question_of_today()
-            res = Leetcode.check_finish_problem(question_today['id'], username_)
-            if not res:
-                return '你怎么没写完啊？坏孩子！'
-            else:
-                question_today['participants'].append(username_)
-                self.store_leet()
-                return f'wow! 你使用了这些语言通过这道题: {res}'
+
+            questions_today = self.get_question_today()
+            questions_status = {}    # {('question id', 'question name'): true/false}
+            # this query will not retrieve passed records from leetcode website, we simply
+            # retrieve the records in our database. User should use 'submit' to invoke a check.
+            for q in questions_today:
+                questions_status[(q['id'], q['name'])] = True if username_ in q['participants'] else False
+
+            to_return = "今日题目你的完成状态: \n"
+            for (k, v) in questions_status.items():
+                to_return += f"{k[0]} {k[1]}: {'已通过!' if v else '还没通过哦.'}\n"
+            to_return += "如果有记录错误, 尝试先通过leet submit提交一下哦!"
+            return to_return
+
         elif query[2] == 'submit':
             pass    # TODO
         # register: match the qq account with leetcode username,
