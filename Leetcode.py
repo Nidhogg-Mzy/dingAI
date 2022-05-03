@@ -12,40 +12,31 @@ class Leetcode:
     Serve as Leetcode API.
     """
 
-    def __init__(self):
-        self.filename = 'leetcode.json'
-        self.leet_list = []
-        self.load_leet_from_file()
+    def __init__(self, filename="leetcode.json"):
+        self.filename = filename
+        self.question_list = {}  # key is date, value is a list of questions (dicts) on that date
+        self.load_questions_from_file()
 
-    def question_of_today(self) -> dict:
-        self.load_leet_from_file()
-        today = datetime.date.today()  # current date
-        result = self.get_leet(lambda prob: prob['date'] == str(today))
-        if not result:
-            return {}
-        return result[0]
-
-    def load_leet_from_file(self):
+    def get_question_today(self) -> list:
         """
-        Load leetcode problem list from file, store the result in self.leet_list
+        Return a list of problems for today, if there is no problem for today, return an empty list.
+        """
+        today = datetime.date.today()  # current date
+        return self.problem_list[today] if today in self.problem_list else []
+
+    def load_questions_from_file(self):
+        """
+        Load leetcode problem list from file, store the result in self.problem_list
         """
         with open(self.filename, "r") as f:
-            self.leet_list = json.load(f)  # A list of dict
+            self.question_list = json.load(f)  # A list of questions, each question is a dict
 
-    def get_leet(self, predicate: lambda ddl: bool) -> list:
+    def store_questions(self):
         """
-        Return a list of leetcode problem that satisfy the predicate
-        :param predicate: a function that takes a ddl and returns True or False based on your predicate
-        :return: a list of leetcode problem that satisfy the predicate
-        """
-        return list(filter(predicate, self.leet_list))
-
-    def store_leet(self):
-        """
-        Store the self.leet_list to file, we don't handle any exception here.
+        Store the self.question_list to file, assuming the file is always available.
         """
         with open(self.filename, "w", encoding='utf-8') as f:
-            json.dump(self.leet_list, f, ensure_ascii=False, indent=4, separators=(',', ': '))
+            json.dump(self.question_list, f, ensure_ascii=False, indent=4, separators=(',', ': '))
 
     @staticmethod
     def get_recent_passed_submission(username: str, debug=False) -> list:
@@ -132,33 +123,47 @@ class Leetcode:
         passed_record = Leetcode.get_recent_passed_submission(username=username, debug=debug)
         return problem_name in passed_record
 
+    @staticmethod
+    def display_questions(question_list: list) -> str:
+        """
+        Given a list of questions, display them in a readable format.
+        :param question_list: A list of questions, each question is a dict.
+        :return: A string containing the question list in readable format
+        """
+        output = ""
+        for question in question_list:
+            output += f"""
+            {'=' * 10}
+            题目名称: {question['name']}
+            题目链接: {question['link']}
+            题目难度: {question['difficulty']}
+            已完成名单: {question['participants']}
+            """
+        return output
+
     def process_query(self, query: list, user_qq: str) -> str:
         """
-        Given a list of queries, return the result of the query
-        :param query: A list of queries, each query is a list of strings, which is the list of strings where
-        after the rev['raw_message'] is split by ' '
-        :param user_qq: The user's qq number
-        :return: The result of the query
+        Given a query and the user that performed the query, return the result of the query
+        :param query: A query, which is a list of strings
+        :param user_qq: The user's qq number who performed the query
+        :return: The result of the query to be sent to the user
         """
 
         if (query is None) or (not query) or (len(query) == 1):
             return "[Internal Error] The query is empty."
         if len(query) < 3:
-            return "[Error] Invalid syntax. Use \"ddl help\" to check usage."
+            return "[Error] Invalid syntax. Use \"leet help\" to check usage."
 
         if query[1] != "leet":
             return "[Internal Error] Non-leetcode query should not be passed into function process_query."
 
         if query[2] == 'today':
-            question = self.question_of_today()
+            question = self.get_question_today()
             if not question:
                 return "[Error] No question today."
             else:
-                return question['date'] + ":\n" + "今日题目 : " + question['name'] + "\n" + \
-                       "题目链接 : " + question['link'] + "\n" + \
-                       "难度 : " + question['difficulty'] + "\n" + \
-                       "标签 : " + question['description'] + "\n"
-        elif query[2] == 'check':
+                return f"今日题目列表:\n{Leetcode.display_questions(question)}"
+        elif query[2] == 'status':
             # the user must have been registered before using this command
             if len(query) > 3:
                 return "[Error] Invalid syntax. Use \"leet help\" to check usage."
@@ -174,6 +179,8 @@ class Leetcode:
                 question_today['participants'].append(username_)
                 self.store_leet()
                 return f'wow! 你使用了这些语言通过这道题: {res}'
+        elif query[2] == 'submit':
+            pass    # TODO
         # register: match the qq account with leetcode username,
         # so user don't need to provide username when query
         elif query[2] == 'register':
@@ -193,29 +200,43 @@ class Leetcode:
             else:
                 return f'您已绑定LeetCode的用户名是: {username_}'
         elif query[2] == 'insert':
-            if len(query) == 3:
-                return 'leet insert {"date": "enter the date", "name": "enter name here", "id": "enter the id here", ' \
-                       '"link": "enter the link here", "difficulty": "enter the difficulty here", ' \
-                       '"description": "enter the description here"}'
-            leetcode_info = ' '.join(query[3:])
-            try:
-                res = json.loads(leetcode_info)
-                curr_date = res['date']
-            except json.JSONDecodeError:
-                return "[Error] Invalid syntax. Use \"leet insert\" to check usage."
-            if re.search(r"^\d{4}-\d{2}-\d{2}$", curr_date):
-                res['participants'] = ''
-                self.load_leet_from_file()
-                self.leet_list.append(res)
-                self.store_leet()
-                return 'Inserted successfully!'
+            if len(query) < 5:  # tag can be empty
+                return '[Error] 请使用leet insert <date> <question id> <tags> 插入题目, 其中<date>格式为YYYY-MM-DD, ' \
+                       '多个tag用空格分隔, 没有tag请留空.'
+            date_received = query[3]
+            question_id = query[4]
+            question_tags = ','.join(query[5:])
+
+            # check if date is valid
+            if not re.search(r"^\d{4}-\d{2}-\d{2}$", date_received):
+                return '[Error] 日期格式不合法, 请输入YYYY-MM-DD格式的日期.'
+            # get question details
+            question_details = self.get_question_details(question_id)
+            if not question_details:
+                return f'[Error] 找不到id为"{question_id}"的题目. 如果你认为这是一个错误，请联系管理员.'
+
+            # store the question
+            question_json = {
+                'name': question_details['name'],
+                'id': question_id,
+                'link': question_details['link'],
+                'difficulty': question_details['difficulty'],
+                'description': question_tags,
+                'participants': []
+            }
+            if date_received not in self.question_list[date_received]:
+                self.question_list[date_received] = [question_json]
             else:
-                return '[Error] Invalid Date.'
+                self.question_list[date_received].append(question_json)
+
+            return f'成功插入题目: {question_name}, 日期为: {date_received}'
+
         elif query[2] == 'help':
             return '''
             [leet today]: 查看今日题目
-            [leet check]: 查看是否已完成今日题目(须绑定Leetcode账户)
-            [leet insert]: 插入题目
+            [leet status]: 查看今日题目完成进度(须绑定Leetcode账户)
+            [leet submit]: 提交今日所有题目(不必全部完成, 须绑定Leetcode账户)
+            [leet insert]: 在给定日期插入题目
             [leet register]: 绑定Leetcode账户
             [leet username]: 查看已绑定的Leetcode账户
             [leet help]: 查看此帮助
