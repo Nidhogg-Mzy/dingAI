@@ -186,7 +186,22 @@ class Leetcode:
             return to_return
 
         elif query[2] == 'submit':
-            pass    # TODO
+            if not (3 <= len(query) <= 4):
+                return "[Error] Invalid syntax. Use \"leet help\" to check usage."
+
+            # user must have been registered before using this command
+            user_op = UserOperation()
+            status_, username_ = user_op.get_leetcode(str(user_qq))
+            if not status_:
+                return '我还不知道您的LeetCode账户名哦，试试leet register <your leetcode username>'
+
+            if len(query) == 3:
+                # submit all the problems today
+                pass   # TODO
+            else:
+                # submit a specific problem
+                pass    # TODO
+
         # register: match the qq account with leetcode username,
         # so user don't need to provide username when query
         elif query[2] == 'register':
@@ -242,6 +257,7 @@ class Leetcode:
             [leet today]: 查看今日题目
             [leet status]: 查看今日题目完成进度(须绑定Leetcode账户)
             [leet submit]: 提交今日所有题目(不必全部完成, 须绑定Leetcode账户)
+            [leet submit <question_id>]: 提交今日指定id的题目(须绑定Leetcode账户)
             [leet insert]: 在给定日期插入题目
             [leet register]: 绑定Leetcode账户
             [leet username]: 查看已绑定的Leetcode账户
@@ -255,5 +271,10 @@ if __name__ == '__main__':
     # print(Leetcode.get_prob_detail_from_id('shu-zu-zhong-zhong-fu-de-shu-zi-lcof'))
     # print(Leetcode.get_prob_detail_from_id('shu-zu-zhong-zhong-fu-de-shu-zi-lf'))
 
-    print(Leetcode.check_finish_problem('190. 颠倒二进制位', 'enor2017', debug=False))
-    print(Leetcode.check_finish_problem('1. 两数之和', 'enor2017', debug=False))
+    # print(Leetcode.check_finish_problem('190. 颠倒二进制位', 'enor2017', debug=False))
+    # print(Leetcode.check_finish_problem('1. 两数之和', 'enor2017', debug=False))
+
+    leet = Leetcode()
+    print(leet.question_list)
+    print(type(leet.question_list["2022-05-01"][0]))
+    leet.store_questions()

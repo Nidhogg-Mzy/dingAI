@@ -11,7 +11,7 @@ all Questions should appear like :
 },
 
 """
-from Leetcode import Leetcode
+from json import JSONEncoder
 
 class Question:
     def __init__(self, problem_id: str, problem_description: str,
@@ -32,6 +32,12 @@ class Question:
         self.id = problem_id
         self.description = problem_description
         self.participants = participants
+        # if all details have been provided, we don't need to get from leetcode website
+        if problem_name is not None and problem_link is not None and problem_difficulty is not None:
+            self.name = problem_name
+            self.link = problem_link
+            self.difficulty = problem_difficulty
+            return
         details = Leetcode.get_prob_detail_from_id(problem_id)
         if not details:
             raise ValueError(f"Cannot find problem whose id is: {problem_id}.")
@@ -48,3 +54,10 @@ class Question:
         已完成的参与者: {self.participants}
         """
 
+
+class QuestionEncoder(JSONEncoder):
+    """
+    This class is used to encode (serialize) a question object to json format.
+    """
+    def default(self, obj):
+        return obj.__dict__

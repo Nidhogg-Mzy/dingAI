@@ -41,22 +41,12 @@ class Encrypted:
         rs = pow(int(hexlify(text.encode('utf-8')), 16), int(pub_key, 16), int(modulus, 16))
         return format(rs, 'x').zfill(256)
 
-    def work(self, ids, br=128000):
-        text = {'ids': [ids], 'br': br, 'csrf_token': ''}
-        text = json.dumps(text)
-        i = self.create_secret_key(16)
-        enc_text = self.aes_encrypt(text, self.nonce)
-        enc_text = self.aes_encrypt(enc_text, i)
-        enc_sec_key = self.rsa_encrpt(i, self.pub_key, self.modulus)
-        data = {'params': enc_text, 'encSecKey': enc_sec_key}
-        return data
-
     def search(self, text):
         text = json.dumps(text)
         i = self.create_secret_key(16)
         enc_text = self.aes_encrypt(text, self.nonce)
         enc_text = self.aes_encrypt(enc_text, i)
-        enc_sec_key = self.rsa_encrpt(i, self.pub_key, self.modulus)
+        enc_sec_key = self.rsa_encrypt(i, self.pub_key, self.modulus)
         data = {'params': enc_text, 'encSecKey': enc_sec_key}
         return data
 
@@ -72,30 +62,34 @@ class Search:
         self.main_url = 'http://music.163.com/'
         self.session = requests.Session()
         self.session.headers = self.headers
-        self.ep = Encrypyed()
+        self.ep = Encrypted()
 
     def search_song(self, search_content, search_type=1, limit=10):
-        song_id_list = []
         url = 'http://music.163.com/weapi/cloudsearch/get/web?csrf_token='
         text = {'s': search_content, 'type': search_type, 'offset': 0, 'sub': 'false', 'limit': limit}
         data = self.ep.search(text)
         resp = self.session.post(url, data=data)
         result = resp.json()
-        if result['result']['songCount'] <= 0:
-            return None
-        else:
+        try:
+            if result['result']['songCount'] <= 0:
+                return None
             songs = result['result']['songs']
-            for song in songs:
-                song_id, song_name, singer, alia = song['id'], song['name'], song['ar'][0]['name'], song['al']['name']
-                song_id_list.append(song_id)
-        return song_id_list[0]
+            # if we want to get more than one result, use this
+            # song_id_list = []
+            # for song in songs:
+            #     song_id = song['id']
+            #     song_id_list.append(song_id)
+            # return song_id_list[0]
+            return songs[0]['id']
+        except KeyError:
+            return None
 
-
-def get_lyrics_pro(id):
-    link = 'http://music.163.com/api/song/media?id=' + str(id)
-    web_data = requests.get(url=link, headers=headers).text
-    json_data = json.loads(web_data)
-    try:
-        return json_data['lyric']
-    except BaseException:
-        return "出错啦，换首别的试试吧！！！"
+    @staticmethod
+    def get_lyrics(song_id):
+        link = 'http://music.163.com/api/song/media?id=' + str(song_id)
+        web_data = requests.get(url=link, headers=headers).text
+        json_data = json.loads(web_data)
+        try:
+            return json_data['lyric']
+        except KeyError:
+            return "出错啦，换首别的试试吧！！！"
