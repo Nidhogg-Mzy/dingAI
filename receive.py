@@ -7,11 +7,12 @@ from DDLService import DDLService
 import datetime
 import time
 from threading import Thread
+from multi_func_reply import Search, get_lyrics_pro
 
 ListenSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 ListenSocket.bind(('127.0.0.1', 5701))
 ListenSocket.listen(100)
-bot_qq_account = 3292297816  # st_bot: 2585899559  # bot: 3292297816
+bot_qq_account = 2585899559  # st_bot: 2585899559  # bot: 3292297816
 
 HttpResponseHeader = '''HTTP/1.1 200 OK\r\n
 Content-Type: text/html\r\n\r\n
@@ -55,12 +56,11 @@ def request_to_json(msg):
 
 def rev_msg():  # json or None
     client, address = ListenSocket.accept()
-    request = client.recv(8192).decode('utf-8', 'ignore')
+    request = client.recv(4096).decode('utf-8', 'ignore')
     rev_json = request_to_json(request)
     client.sendall(HttpResponseHeader.encode(encoding='utf-8'))
     client.close()
     return rev_json
-
 
 def check_scheduled_task():
     """
@@ -73,7 +73,7 @@ def check_scheduled_task():
         if curr_time.hour == 8 and curr_time.minute == 0:
             ddl_service = DDLService()
             send_msg({'msg_type': 'group', 'number': '705716007', 'msg':
-                f'大家早上好呀, 又是新的一天，来看看今天还有哪些ddl呢>_<\n{ddl_service.process_query("ddl today".split(" "), "0")}'})
+                     f'大家早上好呀, 又是新的一天，来看看今天还有哪些ddl呢>_<\n{ddl_service.process_query("ddl today".split(" "), "0")}'})
             ddl_service.remove_expired_ddl()  # remove expired ddl timely
             time.sleep(60)
 
@@ -116,10 +116,46 @@ def rev_private_msg(rev):
     elif rev['raw_message'] == '你在哪':
         qq = rev['sender']['user_id']
         send_msg({'msg_type': 'private', 'number': qq, 'msg': '我无处不在'})
+    elif rev['raw_message'].split(' ')[0] == '歌词':
+        try:
+            str1 = '歌词'
+            song = rev['raw_message'].replace(str1, '')
+            d = Search()
+            id = d.search_song(song)
+            text = get_lyrics_pro(id)
+            qq = rev['sender']['user_id']
+            if id is None:
+                send_msg(
+                    {'msg_type': 'private', 'number': qq, 'msg': '呜呜呜人家找不到嘛'})
+            else:
+                send_msg(
+                    {'msg_type': 'private', 'number': qq, 'msg': text})
+        except BaseException:
+            qq = rev['sender']['user_id']
+            send_msg({'msg_type': 'private', 'number': qq, 'msg': '请在歌名前面加上空格。'})
+    elif rev['raw_message'].split(' ')[0] == '歌曲':
+        try:
+            str1 = '歌曲'
+            song = rev['raw_message'].replace(str1, '')
+            d = Search()
+            id = d.search_song(song)
+            qq = rev['sender']['user_id']
+            if id is None:
+                send_msg(
+                    {'msg_type': 'private', 'number': qq, 'msg': '呜呜呜人家找不到嘛'})
+            else:
+                send_msg(
+                    {'msg_type': 'private', 'number': qq, 'msg': '[CQ:music,type=163,Id={}]'.format(id)})
+        except BaseException:
+            qq = rev['sender']['user_id']
+            send_msg({'msg_type': 'private', 'number': qq, 'msg': '请在歌名前面加上空格。'})
     else:
         qq = rev['sender']['user_id']
         content = rev['raw_message']
-        answer = get_answer(content)
+        if content == '':
+            answer = '根本搞不懂你在讲咩话，说点别的听听啦'
+        else:
+            answer = get_answer(content)
         send_msg({'msg_type': 'private', 'number': qq, 'msg': answer})
 
 
@@ -145,7 +181,6 @@ def rev_group_msg(rev):
             service = DDLService()
             send_msg({'msg_type': 'group', 'number': group,
                       'msg': f"[CQ:at,qq={qq}]\n" + service.process_query(message_parts[1:], qq)})
-
         else:
             content = ""
             for i in range(1, len(message_parts)):
