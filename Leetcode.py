@@ -250,7 +250,7 @@ class Leetcode:
             else:
                 self.question_list[date_received].append(question_json)
 
-            return f'成功插入题目: {question_name}, 日期为: {date_received}'
+            return f'成功插入题目: {question_details["name"]}, 日期为: {date_received}'
 
         elif query[2] == 'help':
             return '''
