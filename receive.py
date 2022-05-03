@@ -7,7 +7,6 @@ from threading import Thread
 import requests
 import Leetcode
 from DDLService import DDLService
-from UserOperation import UserOperation
 from multi_func_reply import Search
 
 ListenSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -198,9 +197,9 @@ def message_process_tasks():
                     rev_group_msg(received)
         except TypeError as e:
             # This error will be reported to developers via qq private message.
-            error_msg = f'[Internal Error] TypeError while trying to reply message. ' \
-                        f'If the message received is too long, try to' + \
-                        f'release the length restriction. (currently 8192)\n' + \
+            error_msg = '[Internal Error] TypeError while trying to reply message. ' \
+                        'If the message received is too long, try to' + \
+                        'release the length restriction. (currently 8192)\n' + \
                         f'[Exception Message] {e}\n ' \
                         f'Message received: {received}'
             send_msg({'msg_type': 'private', 'number': '2220038250', 'msg': error_msg})

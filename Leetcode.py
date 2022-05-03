@@ -1,9 +1,9 @@
 import datetime
 import json
 import re
+from time import sleep
 from bs4 import BeautifulSoup
 from UserOperation import UserOperation
-from time import sleep
 from WebDriver import WebDriver
 
 
@@ -22,7 +22,7 @@ class Leetcode:
         Return a list of problems for today, if there is no problem for today, return an empty list.
         """
         today = datetime.date.today()  # current date
-        return self.problem_list[today] if today in self.problem_list else []
+        return self.question_list[today] if today in self.question_list else []
 
     def load_questions_from_file(self):
         """
@@ -107,9 +107,8 @@ class Leetcode:
         # return the details got
         if problem_title is None or problem_difficulty is None:
             return {}
-        else:
-            return {"name": problem_title.text, "id": problem_id,
-                    "link": url, "difficulty": problem_difficulty.text}
+        return {"name": problem_title.text, "id": problem_id,
+                "link": url, "difficulty": problem_difficulty.text}
 
     @staticmethod
     def check_finish_problem(problem_name: str, username: str, debug: bool = False) -> bool:
@@ -161,8 +160,7 @@ class Leetcode:
             question = self.get_question_today()
             if not question:
                 return "[Error] No question today."
-            else:
-                return f"今日题目列表:\n{Leetcode.display_questions(question)}"
+            return f"今日题目列表:\n{Leetcode.display_questions(question)}"
         elif query[2] == 'status':
             # the user must have been registered before using this command
             if len(query) > 3:
@@ -177,7 +175,7 @@ class Leetcode:
             # this query will not retrieve passed records from leetcode website, we simply
             # retrieve the records in our database. User should use 'submit' to invoke a check.
             for q in questions_today:
-                questions_status[(q['id'], q['name'])] = True if username_ in q['participants'] else False
+                questions_status[(q['id'], q['name'])] = username_ in q['participants']
 
             to_return = "今日题目你的完成状态: \n"
             for (k, v) in questions_status.items():
@@ -186,7 +184,7 @@ class Leetcode:
             return to_return
 
         elif query[2] == 'submit':
-            if not (3 <= len(query) <= 4):
+            if not 3 <= len(query) <= 4:
                 return "[Error] Invalid syntax. Use \"leet help\" to check usage."
 
             # user must have been registered before using this command
@@ -208,18 +206,17 @@ class Leetcode:
             # if username is not provided
             if len(query) < 4:
                 return '正确食用方法: leet register <your leetcode username>'
-            else:
-                user_op = UserOperation()
-                _, msg_ = user_op.register(str(user_qq), query[3])
-                return msg_
+
+            user_op = UserOperation()
+            _, msg_ = user_op.register(str(user_qq), query[3])
+            return msg_
         # check username, for already registered users
         elif query[2] == 'username':
             user_op = UserOperation()
             status_, username_ = user_op.get_leetcode(str(user_qq))
             if not status_:
                 return '我还不知道您的LeetCode用户名诶，要不要试试 leet register <your leetcode username>'
-            else:
-                return f'您已绑定LeetCode的用户名是: {username_}'
+            return f'您已绑定LeetCode的用户名是: {username_}'
         elif query[2] == 'insert':
             if len(query) < 5:  # tag can be empty
                 return '[Error] 请使用leet insert <date> <question id> <tags> 插入题目, 其中<date>格式为YYYY-MM-DD, ' \
@@ -232,7 +229,7 @@ class Leetcode:
             if not re.search(r"^\d{4}-\d{2}-\d{2}$", date_received):
                 return '[Error] 日期格式不合法, 请输入YYYY-MM-DD格式的日期.'
             # get question details
-            question_details = self.get_question_details(question_id)
+            question_details = self.get_prob_detail_from_id(question_id)
             if not question_details:
                 return f'[Error] 找不到id为"{question_id}"的题目. 如果你认为这是一个错误，请联系管理员.'
 

@@ -32,7 +32,7 @@ class UserOperation:
                  Second item is a string, if successful, it indicates the result message, e.g., "Successfully registered.",
                  otherwise, it stores the error message
         """
-        if qq in self.user_list.keys():
+        if qq in self.user_list:
             old_leetcode = self.user_list[qq]
             self.user_list[qq] = leetcode
             try:
@@ -58,10 +58,9 @@ class UserOperation:
         currently the operation will fail only if the user has not registered.
         If first item is True, then second item is a string, representing the user's leetcode username
         """
-        if qq not in self.user_list.keys():
+        if qq not in self.user_list:
             return False, "Error: User not registered."
-        else:
-            return True, self.user_list[qq]
+        return True, self.user_list[qq]
 
 
 if __name__ == "__main__":
