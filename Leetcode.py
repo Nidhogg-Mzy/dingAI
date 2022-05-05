@@ -23,7 +23,7 @@ class Leetcode:
         :param date: The date of the question, format: YYYY-MM-DD. If not given, default to today.
         """
         if date is None:
-            date = datetime.date.today()  # current date
+            date = str(datetime.date.today())  # current date
         return self.question_list[date] if date in self.question_list else []
 
     def load_questions_from_file(self):
@@ -133,13 +133,12 @@ class Leetcode:
         """
         output = ""
         for question in question_list:
-            output += f"""
-            {'=' * 10}
-            题目名称: {question['name']}
-            题目链接: {question['link']}
-            题目难度: {question['difficulty']}
-            已完成名单: {question['participants']}
-            """
+            output += (
+                f"{'=' * 10}\n"
+                f"题目名称: {question['name']}\n"
+                f"题目链接: {question['link']}\n"
+                f"题目难度: {question['difficulty']}\n"
+                f"已完成名单: {question['participants']}\n")
         return output
 
     def process_query(self, query: list, user_qq: str) -> str:
@@ -160,12 +159,15 @@ class Leetcode:
             return "[Error] Invalid syntax. Use \"leet help\" to check usage."
 
         if query[2] == 'today':
-            question = self.get_question_on_date()
-            if not question:
-                return "[Error] No question today."
-            return f"今日题目列表:\n{Leetcode.display_questions(question)}"
+            questions = self.get_question_on_date()
+            if not questions:
+                return "[Error] 今天还没有题目哦."
+            return f"今日题目列表:\n{Leetcode.display_questions(questions)}"
         elif re.search(r"^\d{4}-\d{2}-\d{2}$", query[2]):
-            return f"{query[2]}的题目列表:\n{Leetcode.display_questions(self.get_question_on_date(query[2]))}"
+            questions = self.get_question_on_date(query[2])
+            if not questions:
+                return f"[Error] 日期{query[2]}还没有题目哦."
+            return f"{query[2]}的题目列表:\n{Leetcode.display_questions(questions)}"
         elif query[2] == 'status':
             # the user must have been registered before using this command
             if len(query) > 3:
@@ -330,13 +332,4 @@ class Leetcode:
 
 
 if __name__ == '__main__':
-    # print(Leetcode.get_prob_detail_from_id('shu-zu-zhong-zhong-fu-de-shu-zi-lcof'))
-    # print(Leetcode.get_prob_detail_from_id('shu-zu-zhong-zhong-fu-de-shu-zi-lf'))
-
-    # print(Leetcode.check_finish_problem('190. 颠倒二进制位', 'enor2017', debug=False))
-    # print(Leetcode.check_finish_problem('1. 两数之和', 'enor2017', debug=False))
-
-    leet = Leetcode()
-    print(leet.question_list)
-    print(type(leet.question_list["2022-05-01"][0]))
-    leet.store_questions()
+    pass
