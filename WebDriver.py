@@ -21,7 +21,7 @@ class WebDriver:
         options.add_argument('--no-sandbox')  # fix problems on non-graphics ubuntu server
         options.add_argument('--headless')
         options.add_argument('--disable-blink-features=AutomationControlled')
-        driver = webdriver.Chrome('./chromedriver', options=options)
+        driver = webdriver.Chrome(options=options)
         return driver
 
     @staticmethod
