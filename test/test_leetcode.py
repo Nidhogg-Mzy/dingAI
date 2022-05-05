@@ -3,6 +3,7 @@ import json
 import datetime
 import unittest
 from Leetcode import Leetcode
+from WebDriver import WebDriver
 
 class LeetcodeTest(unittest.TestCase):
     # TODO: support UTF-8 comparison
@@ -30,16 +31,12 @@ class LeetcodeTest(unittest.TestCase):
     @staticmethod
     def check_exists_chrome_driver():
         """
-        This function checks it the chrome driver is installed, either in PATH or in the current directory
+        This function checks it the chrome driver exists, by trying to initialize a driver
         """
-        if os.path.exists('chromedriver'):
-            return True
-        # find chromedriver in PATH
         try:
-            driver = webdriver.Chrome(options=options)
-        except selenium.common.exceptions.WebDriverException:
+            _ = WebDriver.new_driver()
+        except Exception:
             return False
-
         return True
 
     # before each test, load the data and write to ddl_data.json (make sure the file is always the same)
