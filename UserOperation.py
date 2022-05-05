@@ -9,7 +9,7 @@ class UserOperation:
         if not path.isfile(self.data_file):
             raise FileNotFoundError("User data file not found, check if user.json exists.")
 
-        with open(self.data_file, 'r') as f:
+        with open(self.data_file, 'r', encoding='utf-8') as f:
             raw_user_list = json.load(f)    # this reads a list of dict
 
         for qq in raw_user_list:
@@ -20,7 +20,7 @@ class UserOperation:
         if not path.isfile(self.data_file):
             raise FileNotFoundError("User data file not found, check if user.json exists.")
         # write stored data to file
-        with open(self.data_file, 'w') as json_file:
+        with open(self.data_file, 'w', encoding='utf-8') as json_file:
             json.dump(self.user_list, json_file, indent=4, separators=(',', ': '))
 
     def register(self, qq: str, leetcode: str) -> tuple:

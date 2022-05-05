@@ -30,7 +30,7 @@ class Leetcode:
         """
         Load leetcode problem list from file, store the result in self.problem_list
         """
-        with open(self.filename, "r") as f:
+        with open(self.filename, "r", encoding='utf-8') as f:
             self.question_list = json.load(f)  # A list of questions, each question is a dict
 
     def store_questions(self):
