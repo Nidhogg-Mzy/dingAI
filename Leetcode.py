@@ -160,12 +160,12 @@ class Leetcode:
             return "[Error] Invalid syntax. Use \"leet help\" to check usage."
 
         if query[2] == 'today':
-            question = self.get_question_today()
+            question = self.get_question_on_date()
             if not question:
                 return "[Error] No question today."
             return f"今日题目列表:\n{Leetcode.display_questions(question)}"
         elif re.search(r"^\d{4}-\d{2}-\d{2}$", query[2]):
-            return f"{query[2]}的题目列表:\n{Leetcode.display_questions(self.get_question_by_date(query[2]))}"
+            return f"{query[2]}的题目列表:\n{Leetcode.display_questions(self.get_question_on_date(query[2]))}"
         elif query[2] == 'status':
             # the user must have been registered before using this command
             if len(query) > 3:
@@ -175,7 +175,7 @@ class Leetcode:
             if not status_:
                 return '我还不知道您的LeetCode账户名哦，试试leet register <your leetcode username>'
 
-            questions_today = self.get_question_today()
+            questions_today = self.get_question_on_date()
             questions_status = {}    # {('question id', 'question name'): true/false}
             # this query will not retrieve passed records from leetcode website, we simply
             # retrieve the records in our database. User should use 'submit' to invoke a check.
@@ -201,7 +201,7 @@ class Leetcode:
             if len(query) == 3:
                 # submit all the questions today
                 to_return = "提交今日所有题目:\n"
-                today_questions = self.get_question_today()
+                today_questions = self.get_question_on_date()
                 for q in today_questions:
                     curr_status = self.submit_question(datetime.date.today(), q['id'], username_)
                     if curr_status:
@@ -212,7 +212,7 @@ class Leetcode:
             else:
                 # submit a specific question
                 # check if the id is valid
-                today_questions = self.get_question_today()
+                today_questions = self.get_question_on_date()
                 question_id = query[3]  # question id received
                 if question_id not in [q['id'] for q in today_questions]:
                     return f"[Error] 今天没有id为{question_id}的题目哦!"
