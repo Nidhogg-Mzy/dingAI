@@ -17,12 +17,14 @@ class Leetcode:
         self.question_list = {}  # key is date, value is a list of questions (dicts) on that date
         self.load_questions_from_file()
 
-    def get_question_today(self) -> list:
+    def get_question_on_date(self, date: str = None) -> list:
         """
-        Return a list of problems for today, if there is no problem for today, return an empty list.
+        Return a list of problems for a given date, if there is no problem, return an empty list.
+        :param date: The date of the question, format: YYYY-MM-DD. If not given, default to today.
         """
-        today = datetime.date.today()  # current date
-        return self.question_list[today] if today in self.question_list else []
+        if date is None:
+            date = datetime.date.today()  # current date
+        return self.question_list[date] if date in self.question_list else []
 
     def load_questions_from_file(self):
         """
@@ -161,6 +163,8 @@ class Leetcode:
             if not question:
                 return "[Error] No question today."
             return f"今日题目列表:\n{Leetcode.display_questions(question)}"
+        elif re.search(r"^\d{4}-\d{2}-\d{2}$", query[2]):
+            return f"{query[2]}的题目列表:\n{Leetcode.display_questions(self.get_question_by_date(query[2]))}"
         elif query[2] == 'status':
             # the user must have been registered before using this command
             if len(query) > 3:
@@ -218,7 +222,7 @@ class Leetcode:
                 return '我还不知道您的LeetCode用户名诶，要不要试试 leet register <your leetcode username>'
             return f'您已绑定LeetCode的用户名是: {username_}'
         elif query[2] == 'insert':
-            if len(query) < 5:  # tag can be empty
+            if len(query) < 5 or (len(query) > 2 and query[3] == 'help'):  # tag can be empty
                 return '[Error] 请使用leet insert <date> <question id> <tags> 插入题目, 其中<date>格式为YYYY-MM-DD, ' \
                        '多个tag用空格分隔, 没有tag请留空.'
             date_received = query[3]
@@ -247,15 +251,38 @@ class Leetcode:
             else:
                 self.question_list[date_received].append(question_json)
 
+            # store the question in database
+            self.store_questions()
             return f'成功插入题目: {question_details["name"]}, 日期为: {date_received}'
+
+        elif query[2] == 'delete':
+            if len(query) < 4 or (len(query) > 2 and query[3] == 'help'):
+                return '[Error] 请使用leet insert <date> <question id> 删除题目, 其中<date>格式为YYYY-MM-DD, '
+            date_received = query[3]
+            question_id = query[4]
+
+            # check if date is valid
+            if not re.search(r"^\d{4}-\d{2}-\d{2}$", date_received):
+                return '[Error] 日期格式不合法, 请输入YYYY-MM-DD格式的日期.'
+            # check if the question exists
+            questions = [x["id"] for x in self.get_question_on_date(date_received)]
+            if question_id not in questions:
+                return f'[Error] 日期为"{date_received}"的题目中没有id为"{question_id}"的题目.'
+
+            # delete the question
+            self.question_list[date_received] = [x for x in self.question_list[date_received] if x["id"] != question_id]
+            self.store_questions()
+            return f'成功删除题目: {question_id}, 日期为: {date_received}'
 
         elif query[2] == 'help':
             return '''
             [leet today]: 查看今日题目
+            [leet <date>]: 查看指定日期的题目, 日期为YYYY-MM-DD
             [leet status]: 查看今日题目完成进度(须绑定Leetcode账户)
             [leet submit]: 提交今日所有题目(不必全部完成, 须绑定Leetcode账户)
             [leet submit <question_id>]: 提交今日指定id的题目(须绑定Leetcode账户)
-            [leet insert]: 在给定日期插入题目
+            [leet insert <date> <question id> <tags>]: 在给定日期插入题目
+            [leet delete <date> <question id>]: 在给定日期删除题目
             [leet register]: 绑定Leetcode账户
             [leet username]: 查看已绑定的Leetcode账户
             [leet help]: 查看此帮助
