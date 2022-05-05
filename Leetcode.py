@@ -150,13 +150,14 @@ class Leetcode:
         :return: The result of the query to be sent to the user
         """
 
-        if (query is None) or (not query) or (len(query) == 1):
+        if (query is None) or (not query) or (len(query) < 2):
             return "[Internal Error] The query is empty."
-        if len(query) < 3:
-            return "[Error] Invalid syntax. Use \"leet help\" to check usage."
 
         if query[1] != "leet":
             return "[Internal Error] Non-leetcode query should not be passed into function process_query."
+
+        if len(query) < 3:
+            return "[Error] Invalid syntax. Use \"leet help\" to check usage."
 
         if query[2] == 'today':
             question = self.get_question_today()

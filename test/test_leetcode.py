@@ -52,6 +52,97 @@ class LeetcodeTest(unittest.TestCase):
         if os.path.exists("leetcode-test-temp.json"):
             os.remove("leetcode-test-temp.json")
 
+    def test_get_question_details(self):
+        pass
+
+    def test_check_user_finish_question(self):
+        pass
+
+    def test_query_invalid_command(self):
+        leetcode = Leetcode("leetcode-test.json")
+
+        message_parts = ["[dummy]", "leet", "invalid_command"]
+        qq = "123456789"
+        self.assertTrue("Error" in leetcode.process_query(message_parts, qq))
+
+        message_parts = ["[dummy]", "leet", ""]
+        self.assertTrue("Error" in leetcode.process_query(message_parts, qq))
+
+        message_parts = ["[dummy]", "leet", "  "]
+        self.assertTrue("Error" in leetcode.process_query(message_parts, qq))
+
+        message_parts = ["[dummy]", "leet", "%5289nd^^\"()"]
+        self.assertTrue("Error" in leetcode.process_query(message_parts, qq))
+
+        # Below are program bugs, we should not pass non-leetcode query into this function
+        message_parts = ["[dummy]", "haha", " "]
+        self.assertTrue("Internal Error" in leetcode.process_query(message_parts, qq))
+
+        message_parts = ["[dummy]", " "]
+        self.assertTrue("Internal Error" in leetcode.process_query(message_parts, qq))
+
+        message_parts = ["[dummy]"]
+        self.assertTrue("Internal Error" in leetcode.process_query(message_parts, qq))
+
+        message_parts = []
+        self.assertTrue("Internal Error" in leetcode.process_query(message_parts, qq))
+
+        message_parts = None
+        self.assertTrue("Internal Error" in leetcode.process_query(message_parts, qq))
+
+    def test_query_help(self):
+        leetcode = Leetcode("leetcode-test.json")
+        message_parts = ["[dummy]", "leet", "help"]
+        qq = "12345678"
+        # check some essential keywords
+        result_message = leetcode.process_query(message_parts, qq)
+        self.assertTrue("leet help" in result_message)
+        self.assertTrue("leet submit" in result_message)
+        self.assertTrue("leet insert" in result_message)
+        self.assertTrue("leet delete" in result_message)
+        self.assertTrue("leet today" in result_message)
+        self.assertTrue("leet username" in result_message)
+        self.assertTrue("leet register" in result_message)
+        # should not contain error
+        self.assertFalse("Error" in result_message)
+
+    def test_query_get_questions_on_date(self):
+        pass
+
+    def test_query_get_questions_on_date_invalid(self):
+        pass
+
+    def test_query_insert_questions(self):
+        pass
+
+    def test_query_insert_questions_invalid(self):
+        pass
+
+    def test_query_delete_questions(self):
+        pass
+
+    def test_query_delete_questions_invalid(self):
+        pass
+
+    def test_query_submit(self):
+        pass
+
+    def test_query_submit_invalid(self):
+        pass
+
+    # User operations
+    def test_register(self):
+        pass
+
+    def test_register_invalid(self):
+        pass
+
+    def test_get_username(self):
+        pass
+
+    def test_get_username_invalid(self):
+        pass
+
 
 if __name__ == '__main__':
     unittest.main()
