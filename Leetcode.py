@@ -198,11 +198,28 @@ class Leetcode:
                 return '我还不知道您的LeetCode账户名哦，试试leet register <your leetcode username>'
 
             if len(query) == 3:
-                # submit all the problems today
-                pass   # TODO
+                # submit all the questions today
+                to_return = "提交今日所有题目:\n"
+                today_questions = self.get_question_today()
+                for q in today_questions:
+                    curr_status = self.submit_question(datetime.date.today(), q['id'], username_)
+                    if curr_status:
+                        to_return += f"{q['id']} {q['name']}: 您已成功提交!\n"
+                    else:
+                        to_return += f"{q['id']} {q['name']}: 您好像还没有完成这道题.\n"
+                return to_return
             else:
-                # submit a specific problem
-                pass    # TODO
+                # submit a specific question
+                # check if the id is valid
+                today_questions = self.get_question_today()
+                question_id = query[3]  # question id received
+                if question_id not in [q['id'] for q in today_questions]:
+                    return f"[Error] 今天没有id为{question_id}的题目哦!"
+
+                # submit the question
+                if self.submit_question(datetime.date.today(), question_id, username_):
+                    return f"提交题目 {question_id} 成功!"
+                return f"您好像还没有完成题目 {question_id} 哦."
 
         # register: match the qq account with leetcode username,
         # so user don't need to provide username when query
@@ -289,6 +306,26 @@ class Leetcode:
             '''
         else:
             return "[Error] Invalid syntax. Use \"leet help\" to check usage."
+
+    def submit_question(self, question_date: str, question_id: str, username: str) -> bool:
+        """
+        Perform a user's submission of given question on specific date. We assume the parameters are valid.
+        :param question_date: date of the question
+        :param question_id: id of the question
+        :param username: the username of leetcode account
+        :return: True if the user have finished the question, False otherwise
+        """
+        # check if user has already submitted the question
+        if username in self.question_list[question_date][question_id]['participants']:
+            return True
+
+        # check if user finished the question
+        status = self.check_finish_problem(question_id, username)
+        if status:
+            self.question_list[question_date][question_id]['participants'].append(username)
+            self.store_questions()
+            return True
+        return False
 
 
 if __name__ == '__main__':
