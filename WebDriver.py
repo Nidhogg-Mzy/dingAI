@@ -1,4 +1,6 @@
 from selenium import webdriver
+import selenium
+
 
 class WebDriver:
     """
@@ -21,7 +23,11 @@ class WebDriver:
         options.add_argument('--no-sandbox')  # fix problems on non-graphics ubuntu server
         options.add_argument('--headless')
         options.add_argument('--disable-blink-features=AutomationControlled')
-        driver = webdriver.Chrome(options=options)
+        # try to find driver in PATH, if failed, then must exists in same folder
+        try:
+            driver = webdriver.Chrome(options=options)
+        except selenium.common.exceptions.WebDriverException:
+            driver = webdriver.Chrome('./chromedriver', options=options)
         return driver
 
     @staticmethod
