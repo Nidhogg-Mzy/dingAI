@@ -227,15 +227,18 @@ class Leetcode:
         # register: match the qq account with leetcode username,
         # so user don't need to provide username when query
         elif query[2] == 'register':
-            # if username is not provided
-            if len(query) < 4:
-                return '正确食用方法: leet register <your leetcode username>'
+            # if query is invalid
+            if len(query) != 4:
+                return '[Error]正确食用方法: leet register <your leetcode username>'
 
             user_op = UserOperation()
             _, msg_ = user_op.register(str(user_qq), query[3])
             return msg_
         # check username, for already registered users
         elif query[2] == 'username':
+            # if query is invalid
+            if len(query) != 3:
+                return '[Error]正确食用方法: leet username'
             user_op = UserOperation()
             status_, username_ = user_op.get_leetcode(str(user_qq))
             if not status_:

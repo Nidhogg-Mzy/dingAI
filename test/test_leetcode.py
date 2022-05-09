@@ -283,17 +283,59 @@ class LeetcodeTest(unittest.TestCase):
         pass
 
     # User operations
-    def test_register(self):
-        pass
-
+    # We cannot specify where to load data under current implementation, so we just modify original file.
+    # Remember to modify back after testing. Do not mess it up!
     def test_register_invalid(self):
-        pass
+        leetcode = Leetcode("leetcode-test.json")
+        qq = "12345678"
+        error_message = '[Error]正确食用方法: leet register <your leetcode username>'
 
+        message_parts_collections = [["[dummy]", "leet", "register"],                   # invalid length
+                                     ["[dummy]", "leet", "register", "test", "extra"],  # invalid length
+                                     ]
+        for message_parts in message_parts_collections:
+            result_message = leetcode.process_query(message_parts, qq)
+            self.assertEqual(error_message, result_message)
+
+    # 'register' is also tested here
     def test_get_username(self):
-        pass
+        leetcode = Leetcode("leetcode-test.json")
+        message_parts = ["[dummy]", "leet", "username"]
+        message_parts_reg = ["[dummy]", "leet", "register", "testing-leetcode-username"]
+        err_msg_unknown_user = '我还不知道您的LeetCode用户名诶，要不要试试 leet register <your leetcode username>'
+
+        qq = "777788889999"  # a valid username (registered)
+        result_message_from_user_op = leetcode.process_query(message_parts_reg, qq)
+        self.assertTrue('Successfully' in result_message_from_user_op)  # check if register functions well
+
+        result_message = leetcode.process_query(message_parts, qq)
+        self.assertEqual('您已绑定LeetCode的用户名是: testing-leetcode-username', result_message)
+
+        # this part checks register, for an already registered user to update username
+        message_parts_reg_upd = ["[dummy]", "leet", "register", "testing-new-username"]
+        result_message = leetcode.process_query(message_parts_reg_upd, qq)
+        self.assertTrue('Successfully update' in result_message)
+        # check updated username
+        result_message = leetcode.process_query(message_parts, qq)
+        self.assertEqual('您已绑定LeetCode的用户名是: testing-new-username', result_message)
+
+        # TODO: remove the inserted data in user.json to keep database clean
+
+        qq = "1234567887654321"  # ensure an invalid qq account
+        result_message = leetcode.process_query(message_parts, qq)
+        self.assertEqual(err_msg_unknown_user, result_message)
 
     def test_get_username_invalid(self):
-        pass
+        leetcode = Leetcode("leetcode-test.json")
+        qq = "1234567887654321"     # ensure an invalid qq account
+        err_msg_invalid_query = '[Error]正确食用方法: leet username'
+
+        message_parts_collections = [["[dummy]", "leet", "username", ""],           # invalid length
+                                     ["[dummy]", "leet", "username", "testing"],    # invalid length
+                                     ]
+        for message_parts in message_parts_collections:
+            result_message = leetcode.process_query(message_parts, qq)
+            self.assertEqual(err_msg_invalid_query, result_message)
 
 
 if __name__ == '__main__':
