@@ -276,8 +276,8 @@ class Leetcode:
             return f'成功插入题目: {question_details["name"]}, 日期为: {date_received}'
 
         elif query[2] == 'delete':
-            if len(query) < 4 or (len(query) > 2 and query[3] == 'help'):
-                return '[Error] 请使用leet insert <date> <question id> 删除题目, 其中<date>格式为YYYY-MM-DD, '
+            if len(query) != 5 or (len(query) > 2 and query[3] == 'help'):
+                return '[Error] 请使用leet delete <date> <question id> 删除题目, 其中<date>格式为YYYY-MM-DD'
             date_received = query[3]
             question_id = query[4]
 

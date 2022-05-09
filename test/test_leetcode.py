@@ -203,14 +203,78 @@ class LeetcodeTest(unittest.TestCase):
     def test_query_insert_questions(self):
         pass
 
-    def test_query_insert_questions_invalid(self):
-        pass
+    def test_query_insert_questions_invalid_format(self):
+        leetcode = Leetcode("leetcode-test.json")
+        qq = "12345678"
+
+        error_message = '[Error] 请使用leet insert <date> <question id> <tags> 插入题目, 其中<date>格式为YYYY-MM-DD, ' \
+                        '多个tag用空格分隔, 没有tag请留空.'
+        message_parts_collections = [["[dummy]", "leet", "insert"],                             # invalid length
+                                     ["[dummy]", "leet", "insert", ""],                         # invalid length
+                                     ["[dummy]", "leet", "insert", "2000-01-01"],               # invalid length
+                                     ["[dummy]", "leet", "insert", "help"],                     # help message
+                                     ]
+        for message_parts in message_parts_collections:
+            result_message = leetcode.process_query(message_parts, qq)
+            self.assertEqual(error_message, result_message)
+
+        date_error = '[Error] 日期格式不合法, 请输入YYYY-MM-DD格式的日期.'
+        message_parts_collections = [["[dummy]", "leet", "insert", "02-01-2000", "dummy_id"],   # invalid date
+                                     ["[dummy]", "leet", "insert", "", "dummy_id"],             # invalid date
+                                     ["[dummy]", "leet", "insert", "$@98an1", "dummy_id"]       # invalid date
+                                     ]
+        for message_parts in message_parts_collections:
+            result_message = leetcode.process_query(message_parts, qq)
+            self.assertEqual(date_error, result_message)
+
+    @unittest.skipUnless(check_exists_chrome_driver(), "No chrome driver installed.")
+    def test_query_insert_questions_invalid_id(self):
+        leetcode = Leetcode("leetcode-test.json")
+        qq = "12345678"
+        error_message = '[Error] 找不到id为"{}"的题目. 如果你认为这是一个错误，请联系管理员.'
+
+        message_parts = ["[dummy]", "leet", "insert", "2000-01-01", "haha_id"]
+        result_message = leetcode.process_query(message_parts, qq)
+        self.assertEqual(error_message.format("haha_id"), result_message)
+
+        message_parts = ["[dummy]", "leet", "insert", "2000-01-01", ""]
+        result_message = leetcode.process_query(message_parts, qq)
+        self.assertEqual(error_message.format(""), result_message)
+
+        message_parts = ["[dummy]", "leet", "insert", "2000-01-01", " "]
+        result_message = leetcode.process_query(message_parts, qq)
+        self.assertEqual(error_message.format(" "), result_message)
+
+        message_parts = ["[dummy]", "leet", "insert", "2000-01-01", "/"]
+        result_message = leetcode.process_query(message_parts, qq)
+        self.assertEqual(error_message.format("/"), result_message)
 
     def test_query_delete_questions(self):
         pass
 
     def test_query_delete_questions_invalid(self):
-        pass
+        leetcode = Leetcode("leetcode-test.json")
+        qq = "12345678"
+
+        error_message = '[Error] 请使用leet delete <date> <question id> 删除题目, 其中<date>格式为YYYY-MM-DD'
+        message_parts_collections = [["[dummy]", "leet", "delete"],                             # invalid length
+                                     ["[dummy]", "leet", "delete", "2000-01-01"],               # invalid length
+                                     # invalid length
+                                     ["[dummy]", "leet", "delete", "2000-01-01", "balabala", "balabala"],
+                                     ["[dummy]", "leet", "delete", "help"],                     # help message
+                                     ]
+        for message_parts in message_parts_collections:
+            result_message = leetcode.process_query(message_parts, qq)
+            self.assertEqual(error_message, result_message)
+
+        date_error = '[Error] 日期格式不合法, 请输入YYYY-MM-DD格式的日期.'
+        message_parts_collections = [["[dummy]", "leet", "delete", "02-01-2000", "dummy_id"],   # invalid date
+                                     ["[dummy]", "leet", "delete", "", "dummy_id"],             # invalid date
+                                     ["[dummy]", "leet", "delete", "$@98an1", "dummy_id"]       # invalid date
+                                     ]
+        for message_parts in message_parts_collections:
+            result_message = leetcode.process_query(message_parts, qq)
+            self.assertEqual(date_error, result_message)
 
     def test_query_submit(self):
         pass
