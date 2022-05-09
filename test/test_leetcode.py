@@ -19,6 +19,7 @@ def check_exists_chrome_driver():
         return False
     return True
 
+# pylint: disable=too-many-public-methods
 class LeetcodeTest(unittest.TestCase):
     # TODO: support UTF-8 comparison
     leetcode_data = {
@@ -177,7 +178,7 @@ class LeetcodeTest(unittest.TestCase):
         leetcode = Leetcode("leetcode-test.json")
         qq = "12345678"
 
-        answer = f"""[TBA]题目列表:
+        answer = """[TBA]题目列表:
 ==========
 题目名称: 978. [Removed to avoid UTF-8 error]
 题目链接: https://leetcode-cn.com/problems/longest-turbulent-subarray/

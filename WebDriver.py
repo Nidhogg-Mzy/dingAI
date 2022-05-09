@@ -39,8 +39,8 @@ class WebDriver:
             WebDriver.driver = webdriver.Chrome('./chromedriver', options=options)
         except (selenium.common.exceptions.WebDriverException,
                 selenium.common.exceptions.SessionNotCreatedException,
-                FileNotFoundError):
-            raise WebDriverCannotFoundException
+                FileNotFoundError) as e:
+            raise WebDriverCannotFoundException from e
 
         return WebDriver.driver
 
