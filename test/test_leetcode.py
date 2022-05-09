@@ -3,7 +3,21 @@ import json
 import datetime
 import unittest
 from Leetcode import Leetcode
-from WebDriver import WebDriver
+from WebDriver import WebDriver, WebDriverCannotFoundException
+
+
+def check_exists_chrome_driver():
+    """
+    This function checks it the chrome driver exists, by trying to initialize a driver
+    """
+    # if already initialized, return available
+    if WebDriver.driver is not None:
+        return True
+    try:
+        _ = WebDriver.new_driver()
+    except WebDriverCannotFoundException:
+        return False
+    return True
 
 class LeetcodeTest(unittest.TestCase):
     # TODO: support UTF-8 comparison
@@ -27,17 +41,6 @@ class LeetcodeTest(unittest.TestCase):
         }
       ]
     }
-
-    @staticmethod
-    def check_exists_chrome_driver():
-        """
-        This function checks it the chrome driver exists, by trying to initialize a driver
-        """
-        try:
-            _ = WebDriver.new_driver()
-        except Exception:
-            return False
-        return True
 
     # before each test, load the data and write to ddl_data.json (make sure the file is always the same)
     def setUp(self):
@@ -66,8 +69,8 @@ class LeetcodeTest(unittest.TestCase):
         if os.path.exists("leetcode-test-temp.json"):
             os.remove("leetcode-test-temp.json")
 
-    # skip the test when there is no chromedriver installed.  TODO: let it run on Github Action
-    @unittest.skipUnless(check_exists_chrome_driver, "No chrome driver installed.")
+    # skip the test when there is no chromedriver installed.
+    @unittest.skipUnless(check_exists_chrome_driver(), "No chrome driver installed.")
     def test_get_question_details(self):
         result = Leetcode.get_prob_detail_from_id('shu-zu-zhong-zhong-fu-de-shu-zi-lcof')
         answer = {
@@ -84,7 +87,7 @@ class LeetcodeTest(unittest.TestCase):
         self.assertEqual({}, Leetcode.get_prob_detail_from_id('  '))
         self.assertEqual({}, Leetcode.get_prob_detail_from_id('#$!%gb"123"haha'))
 
-    @unittest.skipUnless(check_exists_chrome_driver, "No chrome driver installed.")
+    @unittest.skipUnless(check_exists_chrome_driver(), "No chrome driver installed.")
     def test_user_recent_submission(self):
         # This is hard to test since the users' submission records can change from time to time
         # so we just perform some sanity tests
@@ -94,7 +97,7 @@ class LeetcodeTest(unittest.TestCase):
         self.assertGreater(len(result), 2)      # at least 2 submissions
 
     @unittest.skip("Change to latest data if you want to test.")
-    @unittest.skipUnless(check_exists_chrome_driver, "No chrome driver installed.")
+    @unittest.skipUnless(check_exists_chrome_driver(), "No chrome driver installed.")
     def test_check_finish_problem(self):
         # This is also hard to test, by default we skip this test,
         # when want to test, you should modify the variables below

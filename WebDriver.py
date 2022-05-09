@@ -15,6 +15,7 @@ class WebDriver:
     def new_driver():
         """
         Initializes and return a new driver.
+        Raise WebDriverCannotFoundException if none driver available can be found.
         """
         # we need to use web-driver to open the webpage
         # The webpage got from requests is not complete
@@ -23,12 +24,25 @@ class WebDriver:
         options.add_argument('--no-sandbox')  # fix problems on non-graphics ubuntu server
         options.add_argument('--headless')
         options.add_argument('--disable-blink-features=AutomationControlled')
-        # try to find driver in PATH, if failed, then must exists in same folder
+        # try to find driver in PATH, if failed, then find in same folder
+        find_in_path = True
         try:
-            driver = webdriver.Chrome(options=options)
-        except selenium.common.exceptions.WebDriverException:
-            driver = webdriver.Chrome('./chromedriver', options=options)
-        return driver
+            WebDriver.driver = webdriver.Chrome(options=options)
+        except (selenium.common.exceptions.WebDriverException,
+                selenium.common.exceptions.SessionNotCreatedException):
+            find_in_path = False
+
+        if find_in_path:
+            return WebDriver.driver
+
+        try:
+            WebDriver.driver = webdriver.Chrome('./chromedriver', options=options)
+        except (selenium.common.exceptions.WebDriverException,
+                selenium.common.exceptions.SessionNotCreatedException,
+                FileNotFoundError):
+            raise WebDriverCannotFoundException
+
+        return WebDriver.driver
 
     @staticmethod
     def get_driver():
@@ -47,3 +61,9 @@ class WebDriver:
         """
         WebDriver.driver.close()
         WebDriver.driver = WebDriver.new_driver()
+
+
+class WebDriverCannotFoundException(Exception):
+    """
+    This exception is raised when the chrome web driver cannot be found.
+    """
