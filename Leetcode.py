@@ -48,7 +48,7 @@ class Leetcode:
         :param debug: If True, print debug messages
         :return: A list, each item is ['problem name']
         """
-        url = f"https://leetcode-cn.com/u/{username}/"
+        url = f"https://leetcode.cn/u/{username}/"
         driver = WebDriver.get_driver()
         driver.get(url)
         sleep(2)  # wait for the webpage to load
@@ -83,7 +83,7 @@ class Leetcode:
         """
         # set up chrome driver
         driver = WebDriver.get_driver()
-        url = f"https://leetcode-cn.com/problems/{problem_id}"
+        url = f"https://leetcode.cn/problems/{problem_id}"
         driver.get(url)
         driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
         sleep(1.5)
@@ -141,6 +141,7 @@ class Leetcode:
                 f"已完成名单: {question['participants']}\n")
         return output
 
+    # pylint: disable=too-many-branches
     def process_query(self, query: list, user_qq: str) -> str:
         """
         Given a query and the user that performed the query, return the result of the query
@@ -200,6 +201,7 @@ class Leetcode:
             if not status_:
                 return '我还不知道您的LeetCode账户名哦，试试leet register <your leetcode username>'
 
+            # pylint: disable=no-else-return
             if len(query) == 3:
                 # submit all the questions today
                 to_return = "提交今日所有题目:\n"
