@@ -27,7 +27,7 @@ class LeetcodeTest(unittest.TestCase):
         {
           "name": "978. [Removed to avoid UTF-8 error]",
           "id": "longest-turbulent-subarray",
-          "link": "https://leetcode-cn.com/problems/longest-turbulent-subarray/",
+          "link": "https://leetcode.cn/problems/longest-turbulent-subarray/",
           "difficulty": "[Removed to avoid UTF-8 error]",
           "description": "dp",
           "participants": ["enor2017"]
@@ -35,7 +35,7 @@ class LeetcodeTest(unittest.TestCase):
         {
           "name": "1305. [Removed to avoid UTF-8 error]",
           "id": "all-elements-in-two-binary-search-trees",
-          "link": "https://leetcode-cn.com/problems/all-elements-in-two-binary-search-trees/",
+          "link": "https://leetcode.cn/problems/all-elements-in-two-binary-search-trees/",
           "difficulty": "[Removed to avoid UTF-8 error]",
           "description": "",
           "participants": []
@@ -50,9 +50,8 @@ class LeetcodeTest(unittest.TestCase):
 
     # after each test, delete the ddl_data.json to keep directory clear
     def tearDown(self):
-        pass
-        # if os.path.exists("leetcode-test.json"):
-        #     os.remove("leetcode-test.json")
+        if os.path.exists("leetcode-test.json"):
+            os.remove("leetcode-test.json")
 
     def test_load(self):
         leetcode = Leetcode("leetcode-test.json")
@@ -77,7 +76,7 @@ class LeetcodeTest(unittest.TestCase):
         answer = {
             'name': '剑指 Offer 03. 数组中重复的数字',
             'id': 'shu-zu-zhong-zhong-fu-de-shu-zi-lcof',
-            'link': 'https://leetcode-cn.com/problems/shu-zu-zhong-zhong-fu-de-shu-zi-lcof',
+            'link': 'https://leetcode.cn/problems/shu-zu-zhong-zhong-fu-de-shu-zi-lcof',
             'difficulty': '简单'
         }
         self.assertEqual(answer, result)
@@ -161,11 +160,11 @@ class LeetcodeTest(unittest.TestCase):
         leetcode = Leetcode("leetcode-test.json")
         answer = [{'name': '978. [Removed to avoid UTF-8 error]',
                    'id': 'longest-turbulent-subarray',
-                   'link': 'https://leetcode-cn.com/problems/longest-turbulent-subarray/',
+                   'link': 'https://leetcode.cn/problems/longest-turbulent-subarray/',
                    'difficulty': '[Removed to avoid UTF-8 error]', 'description': 'dp', 'participants': ['enor2017']},
                   {'name': '1305. [Removed to avoid UTF-8 error]',
                    'id': 'all-elements-in-two-binary-search-trees',
-                   'link': 'https://leetcode-cn.com/problems/all-elements-in-two-binary-search-trees/',
+                   'link': 'https://leetcode.cn/problems/all-elements-in-two-binary-search-trees/',
                    'difficulty': '[Removed to avoid UTF-8 error]', 'description': '', 'participants': []}]
         # get the questions for today
         self.assertEqual(answer, leetcode.get_question_on_date())
@@ -181,12 +180,12 @@ class LeetcodeTest(unittest.TestCase):
         answer = """[TBA]题目列表:
 ==========
 题目名称: 978. [Removed to avoid UTF-8 error]
-题目链接: https://leetcode-cn.com/problems/longest-turbulent-subarray/
+题目链接: https://leetcode.cn/problems/longest-turbulent-subarray/
 题目难度: [Removed to avoid UTF-8 error]
 已完成名单: ['enor2017']
 ==========
 题目名称: 1305. [Removed to avoid UTF-8 error]
-题目链接: https://leetcode-cn.com/problems/all-elements-in-two-binary-search-trees/
+题目链接: https://leetcode.cn/problems/all-elements-in-two-binary-search-trees/
 题目难度: [Removed to avoid UTF-8 error]
 已完成名单: []
 """
