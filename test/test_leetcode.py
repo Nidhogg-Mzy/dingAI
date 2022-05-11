@@ -221,8 +221,21 @@ class LeetcodeTest(unittest.TestCase):
         self.assertEqual(answer.replace('[TBA]', str(datetime.date.today()) + '的'),
                          leetcode.process_query(['dummy', 'leet', str(datetime.date.today())], qq))
 
+    @unittest.skipUnless(check_exists_chrome_driver(), "No chrome driver installed.")
     def test_query_insert_questions(self):
-        pass
+        leetcode = Leetcode("leetcode-test.json")
+        qq = "12345678"
+        answer = """[TBA]题目列表:
+==========
+题目名称: 638. 大礼包
+题目链接: https://leetcode.cn/problems/shopping-offers
+题目难度: 中等
+已完成名单: []
+"""
+        message_parts = ["[dummy]", "leet", "insert", "2000-01-01", "shopping-offers"]
+        leetcode.process_query(message_parts, qq)
+        self.assertEqual(answer.replace('[TBA]', "2000-01-01" + '的'),
+                         leetcode.process_query(['dummy', 'leet', "2000-01-01"], qq))
 
     def test_query_insert_questions_invalid_format(self):
         leetcode = Leetcode("leetcode-test.json")
@@ -271,7 +284,45 @@ class LeetcodeTest(unittest.TestCase):
         self.assertEqual(error_message.format("/"), result_message)
 
     def test_query_delete_questions(self):
-        pass
+        leetcode = Leetcode("leetcode-test.json")
+        qq = "12345678"
+        today_str = str(datetime.date.today())
+
+        # delete the question
+        message_parts = ["[dummy]", "leet", "delete", today_str, "longest-turbulent-subarray"]
+        result_message = leetcode.process_query(message_parts, qq)
+        self.assertEqual(f"成功删除题目: longest-turbulent-subarray, 日期为: {today_str}", result_message)
+        expected = """今日题目列表:
+==========
+题目名称: 1305. [Removed to avoid UTF-8 error]
+题目链接: https://leetcode.cn/problems/all-elements-in-two-binary-search-trees/
+题目难度: [Removed to avoid UTF-8 error]
+已完成名单: []
+"""
+        display_query = ["[dummy]", "leet", "today"]
+        # each time use a new instance to check if file is stored correctly
+        leetcode = Leetcode("leetcode-test.json")
+        self.assertEqual(expected, leetcode.process_query(display_query, qq))
+
+        # try to delete second time
+        result_message = leetcode.process_query(message_parts, qq)
+        self.assertEqual(f'[Error] 日期为"{today_str}"的题目中没有id为"longest-turbulent-subarray"的题目.',
+                         result_message)
+        self.assertEqual(expected, leetcode.process_query(display_query, qq))
+
+        # delete the second question
+        message_parts = ["[dummy]", "leet", "delete", today_str, "all-elements-in-two-binary-search-trees"]
+        result_message = leetcode.process_query(message_parts, qq)
+        self.assertEqual(f"成功删除题目: all-elements-in-two-binary-search-trees, 日期为: {today_str}", result_message)
+        expected = "[Error] 今天还没有题目哦."
+        leetcode = Leetcode("leetcode-test.json")
+        self.assertEqual(expected, leetcode.process_query(display_query, qq))
+
+        # try to delete second time
+        result_message = leetcode.process_query(message_parts, qq)
+        self.assertEqual(f'[Error] 日期为"{today_str}"的题目中没有id为"all-elements-in-two-binary-search-trees"的题目.',
+                         result_message)
+        self.assertEqual(expected, leetcode.process_query(display_query, qq))
 
     def test_query_delete_questions_invalid(self):
         leetcode = Leetcode("leetcode-test.json")
@@ -296,6 +347,35 @@ class LeetcodeTest(unittest.TestCase):
         for message_parts in message_parts_collections:
             result_message = leetcode.process_query(message_parts, qq)
             self.assertEqual(date_error, result_message)
+
+        # certain date doesn't contain that question
+        today_str = str(datetime.date.today())
+        message_parts = ["[dummy]", "leet", "delete", today_str, "lalala"]
+        result_message = leetcode.process_query(message_parts, qq)
+        self.assertEqual(f'[Error] 日期为"{today_str}"的题目中没有id为"lalala"的题目.',
+                         result_message)
+        # check the display result
+        expected = """今日题目列表:
+==========
+题目名称: 978. [Removed to avoid UTF-8 error]
+题目链接: https://leetcode.cn/problems/longest-turbulent-subarray/
+题目难度: [Removed to avoid UTF-8 error]
+已完成名单: ['enor2017']
+==========
+题目名称: 1305. [Removed to avoid UTF-8 error]
+题目链接: https://leetcode.cn/problems/all-elements-in-two-binary-search-trees/
+题目难度: [Removed to avoid UTF-8 error]
+已完成名单: []
+"""
+        display_query = ["[dummy]", "leet", "today"]
+        leetcode = Leetcode("leetcode-test.json")   # use a new instance
+        self.assertEqual(expected, leetcode.process_query(display_query, qq))
+
+        # certain date has no question
+        message_parts = ["[dummy]", "leet", "delete", "1999-01-01", "longest-turbulent-subarray"]
+        result_message = leetcode.process_query(message_parts, qq)
+        self.assertEqual(f'[Error] 日期为"1999-01-01"的题目中没有id为"longest-turbulent-subarray"的题目.',
+                         result_message)
 
     def test_query_submit(self):
         pass

@@ -295,7 +295,7 @@ class Leetcode:
                 'description': question_tags,
                 'participants': []
             }
-            if date_received not in self.question_list[date_received]:
+            if date_received not in self.question_list:
                 self.question_list[date_received] = [question_json]
             else:
                 self.question_list[date_received].append(question_json)
