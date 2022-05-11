@@ -2,6 +2,7 @@ import os
 import json
 import datetime
 import unittest
+import UserOperation    # for delete user interface
 from Leetcode import Leetcode
 from WebDriver import WebDriver, WebDriverCannotFoundException
 
@@ -420,7 +421,9 @@ class LeetcodeTest(unittest.TestCase):
         result_message = leetcode.process_query(message_parts, qq)
         self.assertEqual('您已绑定LeetCode的用户名是: testing-new-username', result_message)
 
-        # TODO: remove the inserted data in user.json to keep database clean
+        # remove the inserted data in user.json to keep database clean
+        user_op = UserOperation.UserOperation()
+        user_op.delete_user(qq)
 
         qq = "1234567887654321"  # ensure an invalid qq account
         result_message = leetcode.process_query(message_parts, qq)

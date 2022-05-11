@@ -62,6 +62,23 @@ class UserOperation:
             return False, "Error: User not registered."
         return True, self.user_list[qq]
 
+    def delete_user(self, qq: str) -> bool:
+        """
+        [WARNING] This function should only be called from testing.
+        Delete a user record from the user database given qq account.
+        :param qq: given qq account to delete
+        :return: True, if the user is successfully deleted; False,
+        if user not in database or database file cannot found.
+        """
+        if qq not in self.user_list:
+            return False
+        del self.user_list[qq]
+        try:
+            self.update_data()
+        except FileNotFoundError:
+            return False
+        return True
+
 
 if __name__ == "__main__":
     # Simple Test
