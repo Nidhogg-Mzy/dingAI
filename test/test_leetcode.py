@@ -81,8 +81,29 @@ class LeetcodeTest(unittest.TestCase):
         }
         self.assertEqual(answer, result)
 
+        result = Leetcode.get_prob_detail_from_id('shopping-offers')
+        answer = {
+            'name': '638. 大礼包',
+            'id': 'shopping-offers',
+            'link': 'https://leetcode.cn/problems/shopping-offers',
+            'difficulty': '中等'
+        }
+        self.assertEqual(answer, result)
+
+        # extra slash at the end is also valid
+        result = Leetcode.get_prob_detail_from_id('shopping-offers/')
+        # temporarily we think the id/link should not has the extra slash
+        self.assertEqual(answer, result)
+        result = Leetcode.get_prob_detail_from_id('shopping-offers///')
+        self.assertEqual(answer, result)
+        result = Leetcode.get_prob_detail_from_id('//shopping-offers///')
+        self.assertEqual(answer, result)
+        result = Leetcode.get_prob_detail_from_id('/shopping-offers')
+        self.assertEqual(answer, result)
+
         # non-existing id
         self.assertEqual({}, Leetcode.get_prob_detail_from_id('shu-zu-zhong-zhong-fu-de-shu-zi-lf'))
+        self.assertEqual({}, Leetcode.get_prob_detail_from_id('shoppingoffers'))
         self.assertEqual({}, Leetcode.get_prob_detail_from_id(''))
         self.assertEqual({}, Leetcode.get_prob_detail_from_id('  '))
         self.assertEqual({}, Leetcode.get_prob_detail_from_id('#$!%gb"123"haha'))

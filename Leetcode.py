@@ -51,14 +51,24 @@ class Leetcode:
         url = f"https://leetcode.cn/u/{username}/"
         driver = WebDriver.get_driver()
         driver.get(url)
-        sleep(2)  # wait for the webpage to load
-        page = driver.page_source.encode('utf-8')
-        soup = BeautifulSoup(page, 'html.parser')
+        # continue to load webpage until the certain span tag is found
+        # set timeout to 5 seconds
+        passed_lists = None
+        soup = None
+        timeout_timestamp = datetime.datetime.now() + datetime.timedelta(seconds=5)
+        while datetime.datetime.now() < timeout_timestamp:
+            page = driver.page_source.encode('utf-8')
+            soup = BeautifulSoup(page, 'html.parser')
+            passed_lists = soup.find_all('span', class_='text-label-1 dark:text-dark-label-1 font-medium line-clamp-1')
+            if passed_lists is None or not passed_lists:
+                sleep(0.25)     # not found, continue to wait
+                continue
+            else:               # already found, break the loop
+                break
 
         if debug:
             print(soup.prettify())
 
-        passed_lists = soup.find_all('span', class_='text-label-1 dark:text-dark-label-1 font-medium line-clamp-1')
         passed_problems = []
         for passed in passed_lists:
             problem_name = passed.text
@@ -81,18 +91,32 @@ class Leetcode:
         "link": "<problem link>", "difficulty": "<problem difficulty>"}.
         Return {} if the problem is not found.
         """
+        # Actually it's possible to add extra slashes before/after problem_id
+        # here we clean it for simplicity
+        problem_id = problem_id.strip('/')
         # set up chrome driver
         driver = WebDriver.get_driver()
         url = f"https://leetcode.cn/problems/{problem_id}"
         driver.get(url)
         driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-        sleep(1.5)
-        page = driver.page_source.encode('utf-8')
-        soup = BeautifulSoup(page, 'html.parser')
 
-        # get the whole div of problem spec
-        problem_spec = soup.find('div', class_="description__2b0C")
-        # if not found, this id is invalid, or the crawler is down
+        # continue to load webpage until the certain div of problem spec is found
+        # set timeout to 5 seconds
+        problem_spec = None
+        timeout_timestamp = datetime.datetime.now() + datetime.timedelta(seconds=5)
+        while datetime.datetime.now() < timeout_timestamp:
+            page = driver.page_source.encode('utf-8')
+            soup = BeautifulSoup(page, 'html.parser')
+
+            problem_spec = soup.find('div', class_="description__2b0C")
+            if problem_spec is None or not problem_spec:
+                # continue to wait
+                sleep(0.25)
+                continue
+            # else, retrieved valid problem_spec
+            else:
+                break
+        # if after timeout, we still didn't get the problem spec, return empty dict
         if problem_spec is None or not problem_spec:
             return {}
 
