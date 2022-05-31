@@ -231,7 +231,7 @@ class Leetcode:
                 to_return = "提交今日所有题目:\n"
                 today_questions = self.get_question_on_date()
                 for q in today_questions:
-                    curr_status = self.submit_question(datetime.date.today(), q['id'], username_)
+                    curr_status = self.submit_question(str(datetime.date.today()), q['id'], username_)
                     if curr_status:
                         to_return += f"{q['id']} {q['name']}: 您已成功提交!\n"
                     else:
@@ -246,7 +246,7 @@ class Leetcode:
                     return f"[Error] 今天没有id为{question_id}的题目哦!"
 
                 # submit the question
-                if self.submit_question(datetime.date.today(), question_id, username_):
+                if self.submit_question(str(datetime.date.today()), question_id, username_):
                     return f"提交题目 {question_id} 成功!"
                 return f"您好像还没有完成题目 {question_id} 哦."
 
@@ -347,14 +347,23 @@ class Leetcode:
         :param username: the username of leetcode account
         :return: True if the user have finished the question, False otherwise
         """
+        # get the object of that question in question_list
+        question_obj = None
+        for q in self.question_list[question_date]:
+            if q['id'] == question_id:
+                question_obj = q
+                break
+        if question_obj is None:
+            return False    # this should not happen, since we ensured valid parameters
+
         # check if user has already submitted the question
-        if username in self.question_list[question_date][question_id]['participants']:
+        if username in question_obj['participants']:
             return True
 
         # check if user finished the question
         status = self.check_finish_problem(question_id, username)
         if status:
-            self.question_list[question_date][question_id]['participants'].append(username)
+            question_obj['participants'].append(username)
             self.store_questions()
             return True
         return False
