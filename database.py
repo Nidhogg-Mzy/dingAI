@@ -1,25 +1,48 @@
 import mysql.connector
-from mysql.connector import Error
 import json
 import re
 
 
 class DataBase:
-    with open("dbUserName.json", "r", encoding='utf-8') as f:
-        temp = json.load(f)
-        host, database, user, password = \
-            temp["ip"], temp["database"], temp["username"], temp["password"]
-
-    try:
-        connection = mysql.connector.connect(host=host,
-                                             database=database,
-                                             user=user,
-                                             password=password)
-        cursor = connection.cursor()
-    except Error as e:
-        print("Error while connecting to MySQL", e)
+    connection, cursor = None, None
 
     @staticmethod
+    def init_database(filename: str = "dbUserName.json") -> bool:
+        """
+        This method initialize the database connection, using the configuration in given file.
+        :param filename A JSON file containing database connection configuration. Default value is 'dbUserName.json'
+        :return True if connection is successfully established, False otherwise.
+        """
+        with open(filename, "r", encoding='utf-8') as f:
+            temp = json.load(f)
+            host, database, user, password = \
+                temp["ip"], temp["database"], temp["username"], temp["password"]
+
+        try:
+            DataBase.connection = mysql.connector.connect(host=host,
+                                                          database=database,
+                                                          user=user,
+                                                          password=password)
+            DataBase.cursor = DataBase.connection.cursor()
+            return True
+        except mysql.connector.Error:
+            return False
+
+    @staticmethod
+    def get_connection() -> tuple:
+        """
+        This method returns the database connection and cursor
+        :return A tuple, 1st element is database connection, 2nd element is connection cursor.
+        """
+        return DataBase.connection, DataBase.cursor
+
+    @staticmethod
+    def close_database() -> None:
+        DataBase.connection.close()
+        DataBase.cursor.close()
+
+    @staticmethod
+    # TODO: refactor this method
     def insert_leetcode(date: str, id_: str, link: str, difficult: str, description: str, participants: json):
         if date is None:
             mySql = 'INSERT INTO test.LeetCode (id, link, difficulty, description, participants) ' \
@@ -38,76 +61,63 @@ class DataBase:
             print("Input error, please check input format")
 
     @staticmethod
-    def insert_user(QQAccount: str, username: str) -> bool:
-        mySql = 'INSERT INTO test.Users (QQAccount, username) VALUES (%s, %s)'
-        val = (QQAccount, username)
-        for i in range(2):
-            if not DataBase.connection.is_connected():
-                DataBase.connect_to_database()
-        try:
-            DataBase.cursor.execute(mySql, val)
-            DataBase.connection.commit()
-            return True
-        except Error:
-            return False
-        finally:
-            if DataBase.connection.is_connected():
-                DataBase.cursor.close()
-                DataBase.connection.close()
-                print("MySQL connection is closed")
+    def insert_user(qq_account: str, username: str) -> None:
+        """
+        This method insert given user into database. We assume the parameters are valid.
+        :param qq_account The qq account to insert
+        :param username The leetcode username to insert
+        """
+        sql_cmd = 'INSERT INTO test.Users (QQAccount, username) VALUES (%s, %s)'
+        val = (qq_account, username)
+
+        DataBase.cursor.execute(sql_cmd, val)
+        DataBase.connection.commit()
 
     @staticmethod
-    def get_user() -> tuple:
-        mySql = 'SELECT * FROM test.Users'
-        for i in range(2):
-            if not DataBase.connection.is_connected():
-                DataBase.connect_to_database()
-        toReturn = {}
-        try:
-            DataBase.cursor.execute(mySql)
-            users = DataBase.cursor.fetchall()
-            for user in users:
-                toReturn[user[0]] = user[1]
-            return True, toReturn
-        except Error:
-            return False, toReturn
+    def get_user() -> dict:
+        """
+        This method retrieve all users from database, and return as a dictionary.
+        :return A dict of all users, where key is qq_account, value is leetcode username.
+        """
+        sql_cmd = 'SELECT * FROM test.Users'
+
+        DataBase.cursor.execute(sql_cmd)
+        users = DataBase.cursor.fetchall()
+
+        return {user[0]: user[1] for user in users}
 
     @staticmethod
-    def update_user(QQAccount: str, username: str) -> bool:
-        mySql = 'UPDATE test.Users SET username = %s WHERE QQAccount = %s'
-        val = (username, QQAccount)
-        try:
-            DataBase.cursor.execute(mySql, val)
-            DataBase.connection.commit()
-            return True
-        except Error:
-            return False
+    def update_user(qq_account: str, username: str) -> None:
+        """
+        This method updates the leetcode account of the user with qq_account.
+        :param qq_account The qq_account of the user to update
+        :param username The new leetcode username of the user
+        """
+        sql_cmd = 'UPDATE test.Users SET username = %s WHERE QQAccount = %s'
+        val = (username, qq_account)
+
+        DataBase.cursor.execute(sql_cmd, val)
+        DataBase.connection.commit()
 
     @staticmethod
-    def delete_user(QQAccount: str) -> bool:
-        mySql = 'DELETE FROM test.Users WHERE QQAccount = %s'
-        for i in range(2):
-            if not DataBase.connection.is_connected():
-                DataBase.connect_to_database()
-        try:
-            DataBase.cursor.execute(mySql, QQAccount)
-            DataBase.connection.commit()
-            return True
-        except Error:
-            return False
+    def delete_user(qq_account: str) -> None:
+        """
+        This method deletes the user, given qq_account
+        :param qq_account The qq_account of the user to be deleted.
+        """
+        sql_cmd = 'DELETE FROM test.Users WHERE QQAccount = %s'
 
-    @staticmethod
-    def connect_to_database():
-        DataBase.connection = mysql.connector.connect(host=DataBase.host,
-                                                      database=DataBase.database,
-                                                      user=DataBase.user,
-                                                      password=DataBase.password)
+        DataBase.cursor.execute(sql_cmd, qq_account)
+        DataBase.connection.commit()
 
 
 if __name__ == '__main__':
-    d = DataBase()
+    # d = DataBase()
     # d.insert_leetcode("2022-5-30", "test", "test", "test", "test", json.dumps(["Nidhogg-mzy", "enor2017"]))
-    d.get_user()
-    d.update_user('34295782673', 'sb')
-    d.get_user()
+    # print(d.get_user()[1])
+    # d.update_user('34295782673', 'who loves zxy')
+    # print(d.get_user()[1])
     # print("inserted successfully")
+
+    DataBase.init_database()
+    DataBase.get_user()
