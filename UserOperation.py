@@ -1,27 +1,16 @@
-from os import path
-import json
+from database import DataBase
+
 
 class UserOperation:
     def __init__(self):
-        self.user_list = {}     # format: {qq_account: leetcode_username}
-        self.data_file = "user.json"
-        # read user_list from data file
-        if not path.isfile(self.data_file):
-            raise FileNotFoundError("User data file not found, check if user.json exists.")
+        self.user_list = {}  # format: {qq_account: leetcode_username}
 
-        with open(self.data_file, 'r', encoding='utf-8') as f:
-            raw_user_list = json.load(f)    # this reads a list of dict
-
-        for qq in raw_user_list:
-            self.user_list[qq] = raw_user_list[qq]
-
-    def update_data(self):
-        # Check if data file exists
-        if not path.isfile(self.data_file):
-            raise FileNotFoundError("User data file not found, check if user.json exists.")
-        # write stored data to file
-        with open(self.data_file, 'w', encoding='utf-8') as json_file:
-            json.dump(self.user_list, json_file, indent=4, separators=(',', ': '))
+    def update_user_list(self) -> bool:
+        result = DataBase.get_user()
+        if not result[0]:
+            return False
+        self.user_list = result[1]
+        return True
 
     def register(self, qq: str, leetcode: str) -> tuple:
         """
@@ -34,25 +23,20 @@ class UserOperation:
         """
         if qq in self.user_list:
             old_leetcode = self.user_list[qq]
-            self.user_list[qq] = leetcode
-            try:
-                self.update_data()
-            except FileNotFoundError:
-                return False, "Failed to register. User data file not found, check if user.json exists."
-            else:
+            upd_res = DataBase.update_user(qq, leetcode)
+            upd_local_res = self.update_user_list()
+            if upd_res and upd_local_res:
                 return True, f"Successfully update your leetcode username from {old_leetcode} to {leetcode}."
+            return False, "Failed to connect to database."
         else:
-            self.user_list[qq] = leetcode
-            try:
-                self.update_data()
-            except FileNotFoundError:
-                return False, "Failed to register. User data file not found, check if user.json exists."
-            else:
+            if DataBase.insert_user(qq, leetcode) and self.update_user_list():
                 return True, f"Successfully set your leetcode username to {leetcode}."
+            return False, "Failed to connect to database."
 
     def get_leetcode(self, qq: str) -> tuple:
         """
         Given qq account, return the user's leetcode username.
+
         :param qq: qq account
         :return: A tuple, first item is a boolean, indicating the operation is successful or not,
         currently the operation will fail only if the user has not registered.
@@ -72,12 +56,10 @@ class UserOperation:
         """
         if qq not in self.user_list:
             return False
-        del self.user_list[qq]
-        try:
-            self.update_data()
-        except FileNotFoundError:
-            return False
-        return True
+        if DataBase.delete_user(qq):
+            del self.user_list[qq]
+            return True
+        return False
 
 
 if __name__ == "__main__":
