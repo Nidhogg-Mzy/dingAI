@@ -159,6 +159,7 @@ class LeetcodeTest(unittest.TestCase):
         self.assertTrue("Internal Error" in leetcode.process_query(message_parts, qq))
 
         message_parts = None
+        # there should be a warning of passing None to List
         self.assertTrue("Internal Error" in leetcode.process_query(message_parts, qq))
 
     def test_query_help(self):
@@ -378,13 +379,58 @@ class LeetcodeTest(unittest.TestCase):
         self.assertEqual(f'[Error] 日期为"1999-01-01"的题目中没有id为"longest-turbulent-subarray"的题目.',
                          result_message)
 
+    @unittest.skip("Change to latest data if you want to test. "
+                   "Make sure your account provided passed 'longest-turbulent-subarray', but not"
+                   "'all-elements-in-two-binary-search-trees' to ensure correctness")
+    @unittest.skipUnless(check_exists_chrome_driver(), "No chrome driver installed.")
     def test_query_submit(self):
-        pass
+        leetcode = Leetcode("leetcode-test.json")
+        qq = "2220038250"  # change to your qq account, and make sure it's in user.json
+
+        # invalid problem id
+        message_parts = ["[dummy]", "leet", "submit", "longest-turbulent-sub"]
+        result_message = leetcode.process_query(message_parts, qq)
+        self.assertEqual(f"[Error] 今天没有id为longest-turbulent-sub的题目哦!", result_message)
+
+        # submit single question
+        q_id = "longest-turbulent-subarray"
+        message_parts = ["[dummy]", "leet", "submit", q_id]
+        result_message = leetcode.process_query(message_parts, qq)
+        self.assertEqual(f"提交题目 {q_id} 成功!", result_message)
+        # check already finished TODO: this oracle is not strong enough, modify later
+        self.assertIn('enor2017', leetcode.process_query(['dummy', 'leet', 'today'], qq))
+
+        # submit unfinished single question
+        q_id = "all-elements-in-two-binary-search-trees"
+        message_parts = ["[dummy]", "leet", "submit", q_id]
+        result_message = leetcode.process_query(message_parts, qq)
+        self.assertEqual(f"您好像还没有完成题目 {q_id} 哦.", result_message)
+
+        # submit all
+        message_parts = ["[dummy]", "leet", "submit"]
+        result_message = leetcode.process_query(message_parts, qq)
+        # TODO: below oracles are not strong enough, try to use regex instead
+        self.assertIn(f"您已成功提交!", result_message)
+        self.assertIn("longest-turbulent-subarray", result_message)
+        self.assertIn("您好像还没有完成这道题.", result_message)
+        self.assertIn("all-elements-in-two-binary-search-trees", result_message)
 
     def test_query_submit_invalid(self):
-        pass
+        leetcode = Leetcode("leetcode-test.json")
+        qq = "12345678"
 
-    # User operations
+        # invalid query syntax
+        message_parts = ["[dummy]", "leet", "submit", "invalid field", "invalid field 2"]
+        result_message = leetcode.process_query(message_parts, qq)
+        self.assertEqual("[Error] Invalid syntax. Use \"leet help\" to check usage.", result_message)
+
+        # user not registered
+        message_parts = ["[dummy]", "leet", "submit", "longest-turbulent-subarray"]
+        result_message = leetcode.process_query(message_parts, qq)
+        self.assertEqual("我还不知道您的LeetCode账户名哦，试试leet register <your leetcode username>",
+                         result_message)
+
+    # === User operations ===
     # We cannot specify where to load data under current implementation, so we just modify original file.
     # Remember to modify back after testing. Do not mess it up!
     def test_register_invalid(self):
