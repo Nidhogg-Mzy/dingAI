@@ -31,7 +31,7 @@ class LeetcodeTest(unittest.TestCase):
           "link": "https://leetcode.cn/problems/longest-turbulent-subarray/",
           "difficulty": "[Removed to avoid UTF-8 error]",
           "description": "dp",
-          "participants": []
+          "participants": ["enor2017"]
         },
         {
           "name": "1305. [Removed to avoid UTF-8 error]",
