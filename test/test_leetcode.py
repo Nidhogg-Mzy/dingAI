@@ -376,7 +376,7 @@ class LeetcodeTest(unittest.TestCase):
         # certain date has no question
         message_parts = ["[dummy]", "leet", "delete", "1999-01-01", "longest-turbulent-subarray"]
         result_message = leetcode.process_query(message_parts, qq)
-        self.assertEqual(f'[Error] 日期为"1999-01-01"的题目中没有id为"longest-turbulent-subarray"的题目.',
+        self.assertEqual('[Error] 日期为"1999-01-01"的题目中没有id为"longest-turbulent-subarray"的题目.',
                          result_message)
 
     @unittest.skip("Change to latest data if you want to test. "
@@ -391,7 +391,7 @@ class LeetcodeTest(unittest.TestCase):
         # invalid: using problem id instead of name
         message_parts = ["[dummy]", "leet", "submit", "longest-turbulent-sub"]
         result_message = leetcode.process_query(message_parts, qq)
-        self.assertEqual(f"[Error] 今天没有名为'longest-turbulent-sub'的题目哦!", result_message)
+        self.assertEqual("[Error] 今天没有名为'longest-turbulent-sub'的题目哦!", result_message)
 
         # insert new problems and submit
         # this is because only in this way can we retrieve a valid problem name
@@ -425,7 +425,7 @@ class LeetcodeTest(unittest.TestCase):
         message_parts = ["[dummy]", "leet", "submit"]
         result_message = leetcode.process_query(message_parts, qq)
         # TODO: below oracles are not strong enough, try to use regex instead
-        self.assertIn(f"您已成功提交!", result_message)
+        self.assertIn("您已成功提交!", result_message)
         self.assertIn("638. 大礼包", result_message)
         self.assertIn("您好像还没有完成这道题.", result_message)
         self.assertIn("1. 两数之和", result_message)
