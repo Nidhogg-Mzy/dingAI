@@ -31,7 +31,7 @@ class LeetcodeTest(unittest.TestCase):
           "link": "https://leetcode.cn/problems/longest-turbulent-subarray/",
           "difficulty": "[Removed to avoid UTF-8 error]",
           "description": "dp",
-          "participants": ["enor2017"]
+          "participants": []
         },
         {
           "name": "1305. [Removed to avoid UTF-8 error]",
@@ -380,40 +380,55 @@ class LeetcodeTest(unittest.TestCase):
                          result_message)
 
     @unittest.skip("Change to latest data if you want to test. "
-                   "Make sure your account provided passed 'longest-turbulent-subarray', but not"
-                   "'all-elements-in-two-binary-search-trees' to ensure correctness")
+                   "Make sure your account provided passed 'shopping-offers', but not"
+                   "'two-sum' to ensure correctness")
     @unittest.skipUnless(check_exists_chrome_driver(), "No chrome driver installed.")
     def test_query_submit(self):
         leetcode = Leetcode("leetcode-test.json")
         qq = "2220038250"  # change to your qq account, and make sure it's in user.json
+        today_str = str(datetime.date.today())
 
-        # invalid problem id
+        # invalid: using problem id instead of name
         message_parts = ["[dummy]", "leet", "submit", "longest-turbulent-sub"]
         result_message = leetcode.process_query(message_parts, qq)
-        self.assertEqual(f"[Error] 今天没有id为longest-turbulent-sub的题目哦!", result_message)
+        self.assertEqual(f"[Error] 今天没有名为'longest-turbulent-sub'的题目哦!", result_message)
+
+        # insert new problems and submit
+        # this is because only in this way can we retrieve a valid problem name
+        # otherwise we removed it to avoid UTF8 error
+        insert_1 = ["[dummy]", "leet", "insert", today_str, "shopping-offers"]
+        leetcode.process_query(insert_1, qq)
+        insert_2 = ["[dummy]", "leet", "insert", today_str, "two-sum"]
+        leetcode.process_query(insert_2, qq)
+        get_list = ["[dummy]", "leet", "today"]
+        current_prob_list = leetcode.process_query(get_list, qq)
+        self.assertIn("shopping-offers", current_prob_list,
+                      "[Test Internal Error] Assumption not satisfied, 'shopping-offers' not inserted.")
+        self.assertIn("two-sum", current_prob_list,
+                      "[Test Internal Error] Assumption not satisfied, 'two-sum' not inserted.")
 
         # submit single question
-        q_id = "longest-turbulent-subarray"
-        message_parts = ["[dummy]", "leet", "submit", q_id]
+        q_name = "638. 大礼包"
+        message_parts = ["[dummy]", "leet", "submit", q_name]
         result_message = leetcode.process_query(message_parts, qq)
-        self.assertEqual(f"提交题目 {q_id} 成功!", result_message)
-        # check already finished TODO: this oracle is not strong enough, modify later
+        self.assertEqual(f"提交题目 {q_name} 成功!", result_message)
+        # check already finished    TODO: this oracle is not strong enough, modify later
         self.assertIn('enor2017', leetcode.process_query(['dummy', 'leet', 'today'], qq))
 
         # submit unfinished single question
-        q_id = "all-elements-in-two-binary-search-trees"
-        message_parts = ["[dummy]", "leet", "submit", q_id]
+        q_name = "1. 两数之和"
+        message_parts = ["[dummy]", "leet", "submit", q_name]
         result_message = leetcode.process_query(message_parts, qq)
-        self.assertEqual(f"您好像还没有完成题目 {q_id} 哦.", result_message)
+        self.assertEqual(f"您好像还没有完成题目 {q_name} 哦.", result_message)
 
         # submit all
         message_parts = ["[dummy]", "leet", "submit"]
         result_message = leetcode.process_query(message_parts, qq)
         # TODO: below oracles are not strong enough, try to use regex instead
         self.assertIn(f"您已成功提交!", result_message)
-        self.assertIn("longest-turbulent-subarray", result_message)
+        self.assertIn("638. 大礼包", result_message)
         self.assertIn("您好像还没有完成这道题.", result_message)
-        self.assertIn("all-elements-in-two-binary-search-trees", result_message)
+        self.assertIn("1. 两数之和", result_message)
 
     def test_query_submit_invalid(self):
         leetcode = Leetcode("leetcode-test.json")

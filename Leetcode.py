@@ -231,24 +231,24 @@ class Leetcode:
                 to_return = "提交今日所有题目:\n"
                 today_questions = self.get_question_on_date()
                 for q in today_questions:
-                    curr_status = self.submit_question(str(datetime.date.today()), q['id'], username_)
+                    curr_status = self.submit_question(str(datetime.date.today()), q['name'], username_)
                     if curr_status:
-                        to_return += f"{q['id']} {q['name']}: 您已成功提交!\n"
+                        to_return += f"{q['name']}: 您已成功提交!\n"
                     else:
-                        to_return += f"{q['id']} {q['name']}: 您好像还没有完成这道题.\n"
+                        to_return += f"{q['name']}: 您好像还没有完成这道题.\n"
                 return to_return
             else:
                 # submit a specific question
                 # check if the id is valid
                 today_questions = self.get_question_on_date()
-                question_id = query[3]  # question id received
-                if question_id not in [q['id'] for q in today_questions]:
-                    return f"[Error] 今天没有id为{question_id}的题目哦!"
+                question_name = query[3]  # question id received
+                if question_name not in [q['name'] for q in today_questions]:
+                    return f"[Error] 今天没有名为'{question_name}'的题目哦!"
 
                 # submit the question
-                if self.submit_question(str(datetime.date.today()), question_id, username_):
-                    return f"提交题目 {question_id} 成功!"
-                return f"您好像还没有完成题目 {question_id} 哦."
+                if self.submit_question(str(datetime.date.today()), question_name, username_):
+                    return f"提交题目 {question_name} 成功!"
+                return f"您好像还没有完成题目 {question_name} 哦."
 
         # register: match the qq account with leetcode username,
         # so user don't need to provide username when query
@@ -324,33 +324,32 @@ class Leetcode:
             return f'成功删除题目: {question_id}, 日期为: {date_received}'
 
         elif query[2] == 'help':
-            return '''
-            [leet today]: 查看今日题目
-            [leet <date>]: 查看指定日期的题目, 日期为YYYY-MM-DD
-            [leet status]: 查看今日题目完成进度(须绑定Leetcode账户)
-            [leet submit]: 提交今日所有题目(不必全部完成, 须绑定Leetcode账户)
-            [leet submit <question_id>]: 提交今日指定id的题目(须绑定Leetcode账户)
-            [leet insert <date> <question id> <tags>]: 在给定日期插入题目
-            [leet delete <date> <question id>]: 在给定日期删除题目
-            [leet register]: 绑定Leetcode账户
-            [leet username]: 查看已绑定的Leetcode账户
-            [leet help]: 查看此帮助
-            '''
+            return 'Leetcode 相关指令: \n' \
+                   '[leet today]: 查看今日题目\n' \
+                   '[leet <date>]: 查看指定日期的题目, 日期为YYYY-MM-DD\n' \
+                   '[leet status]: 查看今日题目完成进度(须绑定Leetcode账户)\n' \
+                   '[leet submit]: 提交今日所有题目(不必全部完成, 须绑定Leetcode账户)\n' \
+                   '[leet submit <question_name>]: 提交今日指定题目(须绑定Leetcode账户)\n' \
+                   '[leet insert <date> <question id> <tags>]: 在给定日期插入题目\n' \
+                   '[leet delete <date> <question id>]: 在给定日期删除题目\n' \
+                   '[leet register]: 绑定Leetcode账户\n' \
+                   '[leet username]: 查看已绑定的Leetcode账户\n' \
+                   '[leet help]: 查看此帮助'
         else:
             return "[Error] Invalid syntax. Use \"leet help\" to check usage."
 
-    def submit_question(self, question_date: str, question_id: str, username: str) -> bool:
+    def submit_question(self, question_date: str, question_name: str, username: str) -> bool:
         """
         Perform a user's submission of given question on specific date. We assume the parameters are valid.
         :param question_date: date of the question
-        :param question_id: id of the question
+        :param question_name: name of the question
         :param username: the username of leetcode account
         :return: True if the user have finished the question, False otherwise
         """
         # get the object of that question in question_list
         question_obj = None
         for q in self.question_list[question_date]:
-            if q['id'] == question_id:
+            if q['name'] == question_name:
                 question_obj = q
                 break
         if question_obj is None:
@@ -361,7 +360,7 @@ class Leetcode:
             return True
 
         # check if user finished the question
-        status = self.check_finish_problem(question_id, username)
+        status = self.check_finish_problem(question_name, username)
         if status:
             question_obj['participants'].append(username)
             self.store_questions()
