@@ -23,11 +23,12 @@ class UserOperation:
                  Second item is a string, if successful, it indicates the result message, e.g., "Successfully registered.",
                  otherwise, it stores the error message
         """
+        # pylint: disable=no-else-return
         if qq in UserOperation.user_list:
             old_leetcode = UserOperation.user_list[qq]
             DataBase.update_user(qq, leetcode)
             UserOperation.update_user_list()
-            
+
             # check if the update is really successful TODO: do we really need this?
             new_leetcode = UserOperation.user_list[qq]
             if new_leetcode == leetcode:
@@ -36,7 +37,7 @@ class UserOperation:
         else:
             DataBase.insert_user(qq, leetcode)
             UserOperation.update_user_list()
-        
+
             new_leetcode = UserOperation.user_list[qq]
             if new_leetcode == leetcode:
                 return True, f"Successfully set your leetcode username to {leetcode}."
@@ -68,7 +69,7 @@ class UserOperation:
         """
         if qq not in UserOperation.user_list:
             return False
-        
+
         DataBase.delete_user(qq)
         del UserOperation.user_list[qq]
         return True

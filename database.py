@@ -1,7 +1,7 @@
-import mysql.connector
-import json
 import re
+import json
 from time import sleep
+import mysql.connector
 
 
 class DataBase:
@@ -48,7 +48,7 @@ class DataBase:
         def wrapper(*args, **kwargs):
             # retry 5 times at most
             success = False
-            for counter in range(5):
+            for _ in range(5):
                 # if the db is good, break the loop
                 if (DataBase.connection is not None) and (DataBase.connection.is_connected()):
                     success = True
@@ -146,7 +146,6 @@ class DatabaseDisconnectException(Exception):
     """
     This exception will be raised if the database is failed to connect.
     """
-    pass
 
 
 if __name__ == '__main__':
