@@ -5,19 +5,29 @@ import re
 
 class DataBase:
     connection, cursor = None, None
+    _database = None
+    _config_file = "dbUserName.json"
 
     @staticmethod
-    def init_database(filename: str = "dbUserName.json") -> bool:
+    def set_config_file(filename: str) -> None:
         """
-        This method initialize the database connection, using the configuration in given file.
+        This function sets the filename of database config file.
         :param filename A JSON file containing database connection configuration. Default value is 'dbUserName.json'
+        """
+        DataBase._config_file = filename
+
+    @staticmethod
+    def init_database() -> bool:
+        """
+        This method initialize the database connection, using the configuration in config file.
+        If method 'set_config_file' is not invoked before, it uses 'dbUserName.json' as config file.
         :return True if connection is successfully established, False otherwise.
         """
-        with open(filename, "r", encoding='utf-8') as f:
+        with open(DataBase._config_file, "r", encoding='utf-8') as f:
             temp = json.load(f)
             host, database, user, password = \
                 temp["ip"], temp["database"], temp["username"], temp["password"]
-
+            DataBase._database = database
         try:
             DataBase.connection = mysql.connector.connect(host=host,
                                                           database=database,
@@ -67,7 +77,7 @@ class DataBase:
         :param qq_account The qq account to insert
         :param username The leetcode username to insert
         """
-        sql_cmd = 'INSERT INTO test.Users (QQAccount, username) VALUES (%s, %s)'
+        sql_cmd = f'INSERT INTO {DataBase._database}.Users (QQAccount, username) VALUES (%s, %s)'
         val = (qq_account, username)
 
         DataBase.cursor.execute(sql_cmd, val)
@@ -79,7 +89,7 @@ class DataBase:
         This method retrieve all users from database, and return as a dictionary.
         :return A dict of all users, where key is qq_account, value is leetcode username.
         """
-        sql_cmd = 'SELECT * FROM test.Users'
+        sql_cmd = f'SELECT * FROM {DataBase._database}.Users'
 
         DataBase.cursor.execute(sql_cmd)
         users = DataBase.cursor.fetchall()
@@ -93,7 +103,7 @@ class DataBase:
         :param qq_account The qq_account of the user to update
         :param username The new leetcode username of the user
         """
-        sql_cmd = 'UPDATE test.Users SET username = %s WHERE QQAccount = %s'
+        sql_cmd = f'UPDATE {DataBase._database}.Users SET username = %s WHERE QQAccount = %s'
         val = (username, qq_account)
 
         DataBase.cursor.execute(sql_cmd, val)
@@ -105,9 +115,9 @@ class DataBase:
         This method deletes the user, given qq_account
         :param qq_account The qq_account of the user to be deleted.
         """
-        sql_cmd = 'DELETE FROM test.Users WHERE QQAccount = %s'
+        sql_cmd = f'DELETE FROM {DataBase._database}.Users WHERE QQAccount = %s'
 
-        DataBase.cursor.execute(sql_cmd, qq_account)
+        DataBase.cursor.execute(sql_cmd, [qq_account])
         DataBase.connection.commit()
 
 
