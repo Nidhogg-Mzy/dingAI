@@ -2,17 +2,17 @@ from database import DataBase
 
 
 class UserOperation:
-    def __init__(self):
-        self.user_list = {}  # format: {qq_account: leetcode_username}
+    user_list = {}  # format: {qq_account: leetcode_username}
 
-    def update_user_list(self) -> bool:
-        result = DataBase.get_user()
-        if not result[0]:
-            return False
-        self.user_list = result[1]
-        return True
+    @staticmethod
+    def update_user_list() -> None:
+        """
+        This function read latest user list from database and store in UserOperation.user_list
+        """
+        UserOperation.user_list = DataBase.get_user()
 
-    def register(self, qq: str, leetcode: str) -> tuple:
+    @staticmethod
+    def register(qq: str, leetcode: str) -> tuple:
         """
         Given qq account and leetcode username, register a new user. This function won't raise any exception.
         :param qq: qq account
@@ -21,19 +21,27 @@ class UserOperation:
                  Second item is a string, if successful, it indicates the result message, e.g., "Successfully registered.",
                  otherwise, it stores the error message
         """
-        if qq in self.user_list:
-            old_leetcode = self.user_list[qq]
-            upd_res = DataBase.update_user(qq, leetcode)
-            upd_local_res = self.update_user_list()
-            if upd_res and upd_local_res:
+        if qq in UserOperation.user_list:
+            old_leetcode = UserOperation.user_list[qq]
+            DataBase.update_user(qq, leetcode)
+            UserOperation.update_user_list()
+            
+            # check if the update is really successful TODO: do we really need this?
+            new_leetcode = UserOperation.user_list[qq]
+            if new_leetcode == leetcode:
                 return True, f"Successfully update your leetcode username from {old_leetcode} to {leetcode}."
-            return False, "Failed to connect to database."
+            return False, "Ahh, something wrong during register, please try again"
         else:
-            if DataBase.insert_user(qq, leetcode) and self.update_user_list():
+            DataBase.insert_user(qq, leetcode)
+            UserOperation.update_user_list()
+        
+            new_leetcode = UserOperation.user_list[qq]
+            if new_leetcode == leetcode:
                 return True, f"Successfully set your leetcode username to {leetcode}."
-            return False, "Failed to connect to database."
+            return False, "Ahh, something wrong during register, please try again"
 
-    def get_leetcode(self, qq: str) -> tuple:
+    @staticmethod
+    def get_leetcode(qq: str) -> tuple:
         """
         Given qq account, return the user's leetcode username.
 
@@ -42,11 +50,12 @@ class UserOperation:
         currently the operation will fail only if the user has not registered.
         If first item is True, then second item is a string, representing the user's leetcode username
         """
-        if qq not in self.user_list:
+        if qq not in UserOperation.user_list:
             return False, "Error: User not registered."
-        return True, self.user_list[qq]
+        return True, UserOperation.user_list[qq]
 
-    def delete_user(self, qq: str) -> bool:
+    @staticmethod
+    def delete_user(qq: str) -> bool:
         """
         [WARNING] This function should only be called from testing.
         Delete a user record from the user database given qq account.
@@ -54,38 +63,28 @@ class UserOperation:
         :return: True, if the user is successfully deleted; False,
         if user not in database or database file cannot found.
         """
-        if qq not in self.user_list:
+        if qq not in UserOperation.user_list:
             return False
-        if DataBase.delete_user(qq):
-            del self.user_list[qq]
-            return True
-        return False
+        
+        DataBase.delete_user(qq)
+        del UserOperation.user_list[qq]
+        return True
 
 
 if __name__ == "__main__":
     # Simple Test
-    user_operation = UserOperation()
+    DataBase.init_database()
 
-    res, msg = user_operation.register("123456789", "testing")
-    print(f"result: {res}, message: {msg}")
+    UserOperation.update_user_list()
+    print(UserOperation.user_list)
 
-    # this function returns false when user does not exist
-    status, username = user_operation.get_leetcode("12")
-    if not status:
-        print("User is not registered.")
-    else:
-        print(f"username: {username}")
+    print(UserOperation.register("12345678", "test1"))
+    print(UserOperation.user_list)
+    print(UserOperation.get_leetcode("12345678"))
 
-    status, username = user_operation.get_leetcode("123456789")
-    if not status:
-        print("User is not registered.")
-    else:
-        print(f"username: {username}")
+    print(UserOperation.register("12345678", "test2"))
+    print(UserOperation.user_list)
+    print(UserOperation.get_leetcode("12345678"))
 
-    status, msg = user_operation.register("2220038250", "enor2017")
-    print(f"result: {status}, message: {msg}")
-    status, username = user_operation.get_leetcode("2220038250")
-    if not status:
-        print("User is not registered.")
-    else:
-        print(f"username: {username}")
+    print(UserOperation.delete_user("12345678"))
+    print(UserOperation.user_list)
