@@ -1,6 +1,7 @@
 import mysql.connector
 import json
 import re
+from time import sleep
 
 
 class DataBase:
@@ -39,15 +40,35 @@ class DataBase:
             return False
 
     @staticmethod
-    def get_connection() -> tuple:
+    def retry_if_disconnected(func):
         """
-        This method returns the database connection and cursor
-        :return A tuple, 1st element is database connection, 2nd element is connection cursor.
+        A decorator to retry connecting to database, if the current connection is not working.
+        This should be called before all function that requires db connection.
         """
-        return DataBase.connection, DataBase.cursor
+        def wrapper(*args, **kwargs):
+            # retry 5 times at most
+            success = False
+            for counter in range(5):
+                # if the db is good, break the loop
+                if (DataBase.connection is not None) and (DataBase.connection.is_connected()):
+                    success = True
+                    break
+                # otherwise, try to init database
+                if DataBase.init_database():
+                    # if successfully connect, break the loop
+                    success = True
+                    break
+                # otherwise, retry with a delay
+                sleep(0.25)
+
+            if not success:
+                raise DatabaseDisconnectException("Failed to connect to database after 5 tries.")
+            return func(*args, **kwargs)
+
+        return wrapper
 
     @staticmethod
-    def close_database() -> None:
+    def close_database() -> None:   # TODO: when to call this method?
         DataBase.connection.close()
         DataBase.cursor.close()
 
@@ -119,6 +140,13 @@ class DataBase:
 
         DataBase.cursor.execute(sql_cmd, [qq_account])
         DataBase.connection.commit()
+
+
+class DatabaseDisconnectException(Exception):
+    """
+    This exception will be raised if the database is failed to connect.
+    """
+    pass
 
 
 if __name__ == '__main__':

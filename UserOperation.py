@@ -5,6 +5,7 @@ class UserOperation:
     user_list = {}  # format: {qq_account: leetcode_username}
 
     @staticmethod
+    @DataBase.retry_if_disconnected
     def update_user_list() -> None:
         """
         This function read latest user list from database and store in UserOperation.user_list
@@ -12,6 +13,7 @@ class UserOperation:
         UserOperation.user_list = DataBase.get_user()
 
     @staticmethod
+    @DataBase.retry_if_disconnected
     def register(qq: str, leetcode: str) -> tuple:
         """
         Given qq account and leetcode username, register a new user. This function won't raise any exception.
@@ -55,6 +57,7 @@ class UserOperation:
         return True, UserOperation.user_list[qq]
 
     @staticmethod
+    @DataBase.retry_if_disconnected
     def delete_user(qq: str) -> bool:
         """
         [WARNING] This function should only be called from testing.
@@ -73,7 +76,6 @@ class UserOperation:
 
 if __name__ == "__main__":
     # Simple Test
-    DataBase.init_database()
 
     UserOperation.update_user_list()
     print(UserOperation.user_list)
