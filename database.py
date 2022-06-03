@@ -4,6 +4,35 @@ from time import sleep
 import mysql.connector
 
 
+def retry_if_disconnected(func):
+    """
+    A decorator to retry connecting to database, if the current connection is not working.
+    This should be called before all function that requires db connection.
+    """
+
+    def wrapper(*args, **kwargs):
+        # retry 5 times at most
+        success = False
+        for _ in range(5):
+            # if the db is good, break the loop
+            if (DataBase.connection is not None) and (DataBase.connection.is_connected()):
+                success = True
+                break
+            # otherwise, try to init database
+            if DataBase.init_database():
+                # if successfully connect, break the loop
+                success = True
+                break
+            # otherwise, retry with a delay
+            sleep(0.25)
+
+        if not success:
+            raise DatabaseDisconnectException("Failed to connect to database after 5 tries.")
+        return func(*args, **kwargs)
+
+    return wrapper
+
+
 class DataBase:
     connection, cursor = None, None
     _database = None
@@ -40,34 +69,6 @@ class DataBase:
             return False
 
     @staticmethod
-    def retry_if_disconnected(func):
-        """
-        A decorator to retry connecting to database, if the current connection is not working.
-        This should be called before all function that requires db connection.
-        """
-        def wrapper(*args, **kwargs):
-            # retry 5 times at most
-            success = False
-            for _ in range(5):
-                # if the db is good, break the loop
-                if (DataBase.connection is not None) and (DataBase.connection.is_connected()):
-                    success = True
-                    break
-                # otherwise, try to init database
-                if DataBase.init_database():
-                    # if successfully connect, break the loop
-                    success = True
-                    break
-                # otherwise, retry with a delay
-                sleep(0.25)
-
-            if not success:
-                raise DatabaseDisconnectException("Failed to connect to database after 5 tries.")
-            return func(*args, **kwargs)
-
-        return wrapper
-
-    @staticmethod
     def close_database() -> None:   # TODO: when to call this method?
         DataBase.connection.close()
         DataBase.cursor.close()
@@ -92,6 +93,7 @@ class DataBase:
             print("Input error, please check input format")
 
     @staticmethod
+    @retry_if_disconnected
     def insert_user(qq_account: str, username: str) -> None:
         """
         This method insert given user into database. We assume the parameters are valid.
@@ -105,6 +107,7 @@ class DataBase:
         DataBase.connection.commit()
 
     @staticmethod
+    @retry_if_disconnected
     def get_user() -> dict:
         """
         This method retrieve all users from database, and return as a dictionary.
@@ -118,6 +121,7 @@ class DataBase:
         return {user[0]: user[1] for user in users}
 
     @staticmethod
+    @retry_if_disconnected
     def update_user(qq_account: str, username: str) -> None:
         """
         This method updates the leetcode account of the user with qq_account.
@@ -131,6 +135,7 @@ class DataBase:
         DataBase.connection.commit()
 
     @staticmethod
+    @retry_if_disconnected
     def delete_user(qq_account: str) -> None:
         """
         This method deletes the user, given qq_account
