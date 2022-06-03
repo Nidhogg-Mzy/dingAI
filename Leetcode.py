@@ -10,6 +10,7 @@ from WebDriver import WebDriver
 class Leetcode:
     """
     Serve as Leetcode API.
+    This file should keep a list that records all the
     """
 
     def __init__(self, filename="leetcode.json"):
@@ -185,7 +186,7 @@ class Leetcode:
             if not questions:
                 return "[Error] 今天还没有题目哦."
             return f"今日题目列表:\n{Leetcode.display_questions(questions)}"
-        if re.search(r"^\d{4}-\d{2}-\d{2}$", query[2]):
+        if re.search(r"^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$", query[2]):
             questions = self.get_question_on_date(query[2])
             if not questions:
                 return f"[Error] 日期{query[2]}还没有题目哦."
@@ -276,7 +277,7 @@ class Leetcode:
             question_tags = ','.join(query[5:])
 
             # check if date is valid
-            if not re.search(r"^\d{4}-\d{2}-\d{2}$", date_received):
+            if not re.search(r"^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$", date_received):
                 return '[Error] 日期格式不合法, 请输入YYYY-MM-DD格式的日期.'
             # get question details
             question_details = self.get_prob_detail_from_id(question_id)
@@ -308,7 +309,7 @@ class Leetcode:
             question_id = query[4]
 
             # check if date is valid
-            if not re.search(r"^\d{4}-\d{2}-\d{2}$", date_received):
+            if not re.search(r"^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$", date_received):
                 return '[Error] 日期格式不合法, 请输入YYYY-MM-DD格式的日期.'
             # check if the question exists
             questions = [x["id"] for x in self.get_question_on_date(date_received)]

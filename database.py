@@ -1,4 +1,4 @@
-import re
+import datetime
 import json
 from time import sleep
 import mysql.connector
@@ -69,28 +69,50 @@ class DataBase:
             return False
 
     @staticmethod
-    def close_database() -> None:   # TODO: when to call this method?
+    def close_database() -> None:  # TODO: when to call this method?
         DataBase.connection.close()
         DataBase.cursor.close()
 
     @staticmethod
-    # TODO: refactor this method
-    def insert_leetcode(date: str, id_: str, link: str, difficult: str, description: str, participants: json):
+    @retry_if_disconnected
+    def insert_leetcode(id_: str, name: str, link: str, difficult: str, description: str):
+        """
+        This method insert leetcode question into table leetcode in database
+        """
+        sql_cmd = 'INSERT INTO test.LeetCode (id, name, link, difficulty, description) ' \
+                  'VALUES (%s, %s, %s, %s, %s)'
+        val = (id_, name, link, difficult, description)
+        DataBase.cursor.execute(sql_cmd, val)
+        DataBase.connection.commit()
+
+    @staticmethod
+    @retry_if_disconnected
+    def insert_studyOn(id_: str, date=None) -> None:
+        """
+        This method insert a new record to the table StudyOn,
+        should give user message after return False(implement in LeetCode.py)
+        """
+        sql_cmd = 'INSERT INTO test.StudyOn(date, id) VALUES (%s, %s)'
         if date is None:
-            mySql = 'INSERT INTO test.LeetCode (id, link, difficulty, description, participants) ' \
-                    'VALUES (%s, %s, %s, %s, %s)'
-            val = (id_, link, difficult, description, participants)
-            DataBase.cursor.execute(mySql, val)
-            DataBase.connection.commit()
-        elif re.match(r"^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$", date):
-            # need to add a re to check if date is in the correct format
-            mySql = 'INSERT INTO test.LeetCode (date, id, link, difficulty, description, participants) ' \
-                    'VALUES (%s, %s, %s, %s, %s, %s)'
-            val = (date, id_, link, difficult, description, participants)
-            DataBase.cursor.execute(mySql, val)
-            DataBase.connection.commit()
+            date = datetime.datetime.now().strftime("%Y-%m-%d")
+            val = (date, id_)
         else:
-            print("Input error, please check input format")
+            val = (date, id_)
+        DataBase.cursor.execute(sql_cmd, val)
+        DataBase.connection.commit()
+
+    @staticmethod
+    @retry_if_disconnected
+    def get_question_on_date(date: str) -> dict:
+        """
+        This method get all the question on a specific date
+
+        """
+        sql_cmd = 'SELECT id FROM test.StudyOn WHERE date = %s'
+        val = date
+        DataBase.cursor.execute(sql_cmd, val)
+        questions = DataBase.cursor.fetchall()
+        return {date: questions}
 
     @staticmethod
     @retry_if_disconnected
@@ -104,7 +126,13 @@ class DataBase:
         :param qq The qq account of user
         :return True if database has the record that user finished given problem on given date
         """
-        pass
+        sql_cmd = 'SELECT participant FROM test.ParticipateIn WHERE date = %s AND id = %s'
+        val = (date, problem_id)
+        DataBase.cursor.execute(sql_cmd, val)
+        participants = DataBase.cursor.fetchall()
+        if qq in participants:
+            return True
+        return False
 
     @staticmethod
     @retry_if_disconnected
@@ -116,7 +144,10 @@ class DataBase:
         :param problem_id The unique id of problem, not problem name
         :param qq The qq account of user
         """
-        pass
+        sql_cmd = 'INSERT INTO test.ParticipateIn (date, id, participant) VALUES (%s, %s, %s)'
+        val = (date, problem_id, qq)
+        DataBase.cursor.execute(sql_cmd, val)
+        DataBase.connection.commit()
 
     @staticmethod
     @retry_if_disconnected
@@ -128,7 +159,10 @@ class DataBase:
         :param problem_id The unique id of problem, not problem name
         :return A list containing all users (identified by qq) that have submitted the problem
         """
-        pass
+        sql_cmd = 'SELECT participant FROM test.ParticipateIn WHERE date = %s AND id = %s'
+        val = (date, problem_id)
+        DataBase.cursor.execute(sql_cmd, val)
+        return DataBase.cursor.fetchall()
 
     @staticmethod
     @retry_if_disconnected
@@ -140,7 +174,6 @@ class DataBase:
         """
         sql_cmd = f'INSERT INTO {DataBase._database}.Users (QQAccount, username) VALUES (%s, %s)'
         val = (qq_account, username)
-
         DataBase.cursor.execute(sql_cmd, val)
         DataBase.connection.commit()
 
