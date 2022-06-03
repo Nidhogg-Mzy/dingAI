@@ -160,7 +160,7 @@ def rev_group_msg(rev):
     group = rev['group_id']
     if f'[CQ:at,qq={BOT_QQ_ACCOUNT}]' in rev["raw_message"]:
         qq = rev['sender']['user_id']
-        message_parts = rev['raw_message'].split(' ')
+        message_parts = rev['raw_message'].trim().split(' ')
         if message_parts[1] == '在吗':
             send_msg({'msg_type': 'group', 'number': group, 'msg': reply_msg[random.randint(0, len(reply_msg) - 1)]})
             # send_msg({'msg_type': 'group', 'number': group, 'msg': '[CQ:poke,qq={}]'.format(qq)})

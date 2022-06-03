@@ -3,7 +3,7 @@
 ## 1. For mac
 - Install chrome
 - Check your chrome version [here](chrome://settings/help).
-- Download corresponding chrome driver version [here](https://chromedriver.storage.googleapis.com/index.html?path=100.0.4896.60/).
+- Download corresponding chrome driver version [here](https://chromedriver.chromium.org/downloads).
 - Unzip the downloaded file, copy `chromedriver` to this project folder (under root directory).
 - Run `python Leetcode.py` to see if things work well.
 
@@ -17,7 +17,7 @@ $ sudo apt-get install google-chrome-stable
 ```bash
 $ google-chrome --version
 ```
-- Download corresponding chrome driver version [here](https://chromedriver.storage.googleapis.com/index.html?path=100.0.4896.60/).
+- Download corresponding chrome driver version [here](https://chromedriver.chromium.org/downloads).
 ```bash
 $ wget <the download link here>
 ```
