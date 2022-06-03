@@ -94,6 +94,44 @@ class DataBase:
 
     @staticmethod
     @retry_if_disconnected
+    def check_user_finish_problem(date: str, problem_id: str, qq: str) -> bool:
+        """
+        This function only checks if the user (identified by qq) has finished the given problem
+        on given date in database record. This will not invoke Leetcode API to do online checking.
+
+        :param date The date of given problem
+        :param problem_id The unique id of problem, not problem name
+        :param qq The qq account of user
+        :return True if database has the record that user finished given problem on given date
+        """
+        pass
+
+    @staticmethod
+    @retry_if_disconnected
+    def submit_problem(date: str, problem_id: str, qq: str) -> None:
+        """
+        This function will be called when a user successfully submits the problem.
+
+        :param date The date of given problem
+        :param problem_id The unique id of problem, not problem name
+        :param qq The qq account of user
+        """
+        pass
+
+    @staticmethod
+    @retry_if_disconnected
+    def get_prob_participant(date: str, problem_id: str) -> list:
+        """
+        This function get all participants for given problem on given date.
+
+        :param date The date of given problem
+        :param problem_id The unique id of problem, not problem name
+        :return A list containing all users (identified by qq) that have submitted the problem
+        """
+        pass
+
+    @staticmethod
+    @retry_if_disconnected
     def insert_user(qq_account: str, username: str) -> None:
         """
         This method insert given user into database. We assume the parameters are valid.
