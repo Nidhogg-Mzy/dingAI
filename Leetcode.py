@@ -5,6 +5,7 @@ from time import sleep
 from bs4 import BeautifulSoup
 from UserOperation import UserOperation
 from WebDriver import WebDriver
+from database import DataBase
 
 
 class Leetcode:
@@ -25,7 +26,7 @@ class Leetcode:
         """
         if date is None:
             date = str(datetime.date.today())  # current date
-        return self.question_list[date] if date in self.question_list else []
+        return DataBase.get_question_on_date(date)
 
     def load_questions_from_file(self):
         """

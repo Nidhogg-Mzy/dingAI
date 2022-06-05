@@ -79,7 +79,7 @@ class DataBase:
         """
         This method insert leetcode question into table leetcode in database
         """
-        sql_cmd = 'INSERT INTO test.LeetCode (id, name, link, difficulty, description) ' \
+        sql_cmd = f'INSERT INTO {DataBase._database}.LeetCode (id, name, link, difficulty, description) ' \
                   'VALUES (%s, %s, %s, %s, %s)'
         val = (id_, name, link, difficult, description)
         DataBase.cursor.execute(sql_cmd, val)
@@ -92,7 +92,7 @@ class DataBase:
         This method insert a new record to the table StudyOn,
         should give user message after return False(implement in LeetCode.py)
         """
-        sql_cmd = 'INSERT INTO test.StudyOn(date, id) VALUES (%s, %s)'
+        sql_cmd = f'INSERT INTO {DataBase._database}.StudyOn(date, id) VALUES (%s, %s)'
         if date is None:
             date = datetime.datetime.now().strftime("%Y-%m-%d")
             val = (date, id_)
@@ -103,16 +103,16 @@ class DataBase:
 
     @staticmethod
     @retry_if_disconnected
-    def get_question_on_date(date: str) -> dict:
+    def get_question_on_date(date: str) -> list:
         """
         This method get all the question on a specific date
 
         """
-        sql_cmd = 'SELECT id FROM test.StudyOn WHERE date = %s'
+        sql_cmd = f'SELECT id FROM {DataBase._database}.StudyOn WHERE date = %s'
         val = date
         DataBase.cursor.execute(sql_cmd, val)
         questions = DataBase.cursor.fetchall()
-        return {date: questions}
+        return questions
 
     @staticmethod
     @retry_if_disconnected
@@ -126,7 +126,7 @@ class DataBase:
         :param qq The qq account of user
         :return True if database has the record that user finished given problem on given date
         """
-        sql_cmd = 'SELECT participant FROM test.ParticipateIn WHERE date = %s AND id = %s'
+        sql_cmd = f'SELECT participant FROM {DataBase._database}.ParticipateIn WHERE date = %s AND id = %s'
         val = (date, problem_id)
         DataBase.cursor.execute(sql_cmd, val)
         participants = DataBase.cursor.fetchall()
@@ -144,7 +144,7 @@ class DataBase:
         :param problem_id The unique id of problem, not problem name
         :param qq The qq account of user
         """
-        sql_cmd = 'INSERT INTO test.ParticipateIn (date, id, participant) VALUES (%s, %s, %s)'
+        sql_cmd = f'INSERT INTO {DataBase._database}.ParticipateIn (date, id, participant) VALUES (%s, %s, %s)'
         val = (date, problem_id, qq)
         DataBase.cursor.execute(sql_cmd, val)
         DataBase.connection.commit()
@@ -159,7 +159,7 @@ class DataBase:
         :param problem_id The unique id of problem, not problem name
         :return A list containing all users (identified by qq) that have submitted the problem
         """
-        sql_cmd = 'SELECT participant FROM test.ParticipateIn WHERE date = %s AND id = %s'
+        sql_cmd = f'SELECT participant FROM {DataBase._database}.ParticipateIn WHERE date = %s AND id = %s'
         val = (date, problem_id)
         DataBase.cursor.execute(sql_cmd, val)
         return DataBase.cursor.fetchall()
