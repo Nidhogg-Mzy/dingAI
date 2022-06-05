@@ -159,6 +159,7 @@ class Leetcode:
                 f"题目名称: {question['name']}\n"
                 f"题目链接: {question['link']}\n"
                 f"题目难度: {question['difficulty']}\n"
+                f"题目标签: {question['description']}\n"
                 f"已完成名单: {question['participants']}\n")
         return output
 
@@ -213,7 +214,7 @@ class Leetcode:
             return to_return
 
         if query[2] == 'submit':
-            if not 3 <= len(query) <= 4:
+            if not 3 <= len(query):
                 return "[Error] Invalid syntax. Use \"leet help\" to check usage."
 
             # user must have been registered before using this command
@@ -238,7 +239,9 @@ class Leetcode:
                 # submit a specific question
                 # check if the id is valid
                 today_questions = self.get_question_on_date()
-                question_name = query[3]  # question id received
+                question_name = query[3]
+                for i in range(4, len(query)):
+                    question_name = question_name + ' ' + query[i]# question id received
                 if question_name not in [q['name'] for q in today_questions]:
                     return f"[Error] 今天没有名为'{question_name}'的题目哦!"
 
