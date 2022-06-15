@@ -17,30 +17,30 @@ class Leetcode:
     def __init__(self, filename="leetcode.json"):
         self.filename = filename
         self.question_list = {}  # key is date, value is a list of questions (dicts) on that date
-        self.load_questions_from_file()
 
-    def get_question_on_date(self, date: str = None) -> list:
-        """
-        Return a list of problems for a given date, if there is no problem, return an empty list.
-        :param date: The date of the question, format: YYYY-MM-DD. If not given, default to today.
-        """
-        if date is None:
-            date = str(datetime.date.today())  # current date
-        return DataBase.get_question_on_date(date)
+    # def get_question_on_date(self, date: str = None) -> list:
+    #     """
+    #     Return a list of problems for a given date, if there is no problem, return an empty list.
+    #     :param date: The date of the question, format: YYYY-MM-DD. If not given, default to today.
+    #     """
+    #     if date is None:
+    #         date = str(datetime.date.today())  # current date
+    #     self.question_list = DataBase.get_question_on_date(date)
+    #     return self.question_list[date]
 
-    def load_questions_from_file(self):
-        """
-        Load leetcode problem list from file, store the result in self.problem_list
-        """
-        with open(self.filename, "r", encoding='utf-8') as f:
-            self.question_list = json.load(f)  # A list of questions, each question is a dict
+    # def load_questions_from_file(self):
+    #     """
+    #     Load leetcode problem list from file, store the result in self.problem_list
+    #     """
+    #     with open(self.filename, "r", encoding='utf-8') as f:
+    #         self.question_list = json.load(f)  # A list of questions, each question is a dict
 
-    def store_questions(self):
-        """
-        Store the self.question_list to file, assuming the file is always available.
-        """
-        with open(self.filename, "w", encoding='utf-8') as f:
-            json.dump(self.question_list, f, ensure_ascii=False, indent=4, separators=(',', ': '))
+    # def store_questions(self):
+    #     """
+    #     Store the self.question_list to file, assuming the file is always available.
+    #     """
+    #     with open(self.filename, "w", encoding='utf-8') as f:
+    #         json.dump(self.question_list, f, ensure_ascii=False, indent=4, separators=(',', ': '))
 
     @staticmethod
     def get_recent_passed_submission(username: str, debug=False) -> list:
@@ -156,12 +156,13 @@ class Leetcode:
         """
         output = ""
         for question in question_list:
+            participants = DataBase.get_prob_participant(question["id"])
             output += (
                 f"{'=' * 10}\n"
                 f"题目名称: {question['name']}\n"
                 f"题目链接: {question['link']}\n"
                 f"题目难度: {question['difficulty']}\n"
-                f"已完成名单: {question['participants']}\n")
+                f"已完成名单: {participants}\n")
         return output
 
     # pylint: disable=too-many-branches
@@ -183,12 +184,12 @@ class Leetcode:
             return "[Error] Invalid syntax. Use \"leet help\" to check usage."
 
         if query[2] == 'today':
-            questions = self.get_question_on_date()
+            questions = DataBase.get_question_on_date()
             if not questions:
                 return "[Error] 今天还没有题目哦."
             return f"今日题目列表:\n{Leetcode.display_questions(questions)}"
         if re.search(r"^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$", query[2]):
-            questions = self.get_question_on_date(query[2])
+            questions = DataBase.get_question_on_date(query[2])
             if not questions:
                 return f"[Error] 日期{query[2]}还没有题目哦."
             return f"{query[2]}的题目列表:\n{Leetcode.display_questions(questions)}"
@@ -201,7 +202,7 @@ class Leetcode:
             if not status_:
                 return '我还不知道您的LeetCode账户名哦，试试leet register <your leetcode username>'
 
-            questions_today = self.get_question_on_date()
+            questions_today = DataBase.get_question_on_date()
             questions_status = {}    # {('question id', 'question name'): true/false}
             # this query will not retrieve passed records from leetcode website, we simply
             # retrieve the records in our database. User should use 'submit' to invoke a check.
@@ -275,7 +276,6 @@ class Leetcode:
                        '多个tag用空格分隔, 没有tag请留空.'
             date_received = query[3]
             question_id = query[4]
-            question_tags = ','.join(query[5:])
 
             # check if date is valid
             if not re.search(r"^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$", date_received):
@@ -286,22 +286,25 @@ class Leetcode:
                 return f'[Error] 找不到id为"{question_id}"的题目. 如果你认为这是一个错误，请联系管理员.'
 
             # store the question
-            question_json = {
-                'name': question_details['name'],
-                'id': question_id,
-                'link': question_details['link'],
-                'difficulty': question_details['difficulty'],
-                'description': question_tags,
-                'participants': []
-            }
-            if date_received not in self.question_list:
-                self.question_list[date_received] = [question_json]
+            # question_json = {
+            #     'name': question_details['name'],
+            #     'id': question_id,
+            #     'link': question_details['link'],
+            #     'difficulty': question_details['difficulty'],
+            # }
+            result1 = DataBase.insert_leetcode(question_id, question_details['name'], question_details['link'],
+                                     question_details['difficulty'], query[5:])
+            result2 = DataBase.insert_studyOn(question_id, date_received)
+            if result1[0] and result2[0]:
+                return f'成功插入题目: {question_details["name"]}, 日期为: {date_received}'
             else:
-                self.question_list[date_received].append(question_json)
-
-            # store the question in database
-            self.store_questions()
-            return f'成功插入题目: {question_details["name"]}, 日期为: {date_received}'
+                return result1[1] + result2[1]
+                # if date_received not in self.question_list:
+                #     self.question_list[date_received] = [question_json]
+                # else:
+                #     self.question_list[date_received].append(question_json)
+                # store the question in database
+                # self.store_questions()`
 
         if query[2] == 'delete':
             if len(query) != 5 or (len(query) > 2 and query[3] == 'help'):
@@ -313,14 +316,16 @@ class Leetcode:
             if not re.search(r"^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$", date_received):
                 return '[Error] 日期格式不合法, 请输入YYYY-MM-DD格式的日期.'
             # check if the question exists
-            questions = [x["id"] for x in self.get_question_on_date(date_received)]
+            questions = DataBase.get_question_on_date(date_received)
             if question_id not in questions:
                 return f'[Error] 日期为"{date_received}"的题目中没有id为"{question_id}"的题目.'
 
             # delete the question
-            self.question_list[date_received] = [x for x in self.question_list[date_received] if x["id"] != question_id]
-            self.store_questions()
-            return f'成功删除题目: {question_id}, 日期为: {date_received}'
+            result = DataBase.delete_leetcode(question_id)
+            if result[0]:
+                return f'成功删除题目: {question_id}, 日期为: {date_received}'
+            else:
+                return result[1]
 
         if query[2] == 'help':
             return 'Leetcode 相关指令: \n' \
@@ -348,7 +353,8 @@ class Leetcode:
         """
         # get the object of that question in question_list
         question_obj = None
-        for q in self.question_list[question_date]:
+        question_list = DataBase.get_question_on_date(question_date)
+        for q in question_list:
             if q['name'] == question_name:
                 question_obj = q
                 break
@@ -356,16 +362,31 @@ class Leetcode:
             return False    # this should not happen, since we ensured valid parameters
 
         # check if user has already submitted the question
-        if username in question_obj['participants']:
+        participants = DataBase.get_prob_participant(question_obj['id'])
+        if username in participants:
             return True
 
         # check if user finished the question
         status = self.check_finish_problem(question_name, username)
         if status:
-            question_obj['participants'].append(username)
-            self.store_questions()
+            DataBase.submit_problem(question_date, question_obj['id'], username)
             return True
         return False
+
+    def update_question_list(self):
+        """
+        Update the question list.
+        :return: None
+        """
+        # get the question list from leetcode
+        while True:
+            # get current time in UTC+8
+            curr_time = datetime.datetime.utcnow() + datetime.timedelta(hours=8)
+            # 8:00 AM, show ddl today
+            if curr_time.hour == 0 and curr_time.minute == 0:
+                self.question_list = DataBase.get_question_on_date(curr_time.strftime('%Y-%m-%d'))
+
+            time.sleep(20)  # allow some buffer time.
 
 
 if __name__ == '__main__':

@@ -2,6 +2,7 @@ import datetime
 import json
 from time import sleep
 import mysql.connector
+from mysql.connector import errorcode
 
 
 def retry_if_disconnected(func):
@@ -75,44 +76,89 @@ class DataBase:
 
     @staticmethod
     @retry_if_disconnected
-    def insert_leetcode(id_: str, name: str, link: str, difficult: str, description: str):
+    def insert_leetcode(id_: str, name: str, link: str, difficulty: str, tags: list) -> tuple:
         """
         This method insert leetcode question into table leetcode in database
+        id_, name, link, difficulty goes to LeetCode while we should also construct
+        corresponding QuestionTag record Accordingly by insert id_ and tag into QuestionTag
         """
-        sql_cmd = f'INSERT INTO {DataBase._database}.LeetCode (id, name, link, difficulty, description) ' \
-                  'VALUES (%s, %s, %s, %s, %s)'
-        val = (id_, name, link, difficult, description)
-        DataBase.cursor.execute(sql_cmd, val)
-        DataBase.connection.commit()
+        try:
+            sql_cmd = f'INSERT INTO {DataBase._database}.LeetCode (id, name, link, difficulty) ' \
+                      'VALUES (%s, %s, %s, %s)'
+            val = (id_, name, link, difficulty)
+            DataBase.cursor.execute(sql_cmd, val)
+            DataBase.connection.commit()
+            print("Inserted leetcode question:", id_, name, link, difficulty)
+            for tag in tags:
+                sql_cmd = f'INSERT INTO {DataBase._database}.QuestionTag (id, tag) ' \
+                          'VALUES (%s, %s)'
+                val = (id_, tag)
+                DataBase.cursor.execute(sql_cmd, val)
+                DataBase.connection.commit()
+                print("Inserted question tag:", id_, tag)
+            return True, None
+        except mysql.connector.Error as err:
+            return False, err
+            # if err.errno == errorcode.ER_DUP_ENTRY:
+            #     return False, "Duplicate entry"
+            # else:
+            #     print(err)
 
     @staticmethod
     @retry_if_disconnected
-    def insert_studyOn(id_: str, date=None) -> None:
+    def delete_leetcode(id_: str) -> tuple:
+        try:
+            sql_cmd = f'DELETE FROM {DataBase._database}.LeetCode WHERE id = %s'
+            val = (id_,)
+            DataBase.cursor.execute(sql_cmd, val)
+            DataBase.connection.commit()
+            return True, None
+        except mysql.connector.Error as err:
+            return False, err
+
+    @staticmethod
+    @retry_if_disconnected
+    def insert_studyOn(id_: str, date=None) -> tuple:
         """
         This method insert a new record to the table StudyOn,
         should give user message after return False(implement in LeetCode.py)
         """
-        sql_cmd = f'INSERT INTO {DataBase._database}.StudyOn(date, id) VALUES (%s, %s)'
-        if date is None:
-            date = datetime.datetime.now().strftime("%Y-%m-%d")
-            val = (date, id_)
-        else:
-            val = (date, id_)
-        DataBase.cursor.execute(sql_cmd, val)
-        DataBase.connection.commit()
+        try:
+            sql_cmd = f'INSERT INTO {DataBase._database}.StudyOn(date, id) VALUES (%s, %s)'
+            if date is None:
+                date = datetime.datetime.now().strftime("%Y-%m-%d")
+                val = (date, id_)
+            else:
+                val = (date, id_)
+            DataBase.cursor.execute(sql_cmd, val)
+            DataBase.connection.commit()
+            return True, 'inserted successfully'
+        except mysql.connector.Error as err:
+            return False, err
+            # if err.errno == errorcode.ER_DUP_ENTRY:
+            #     return False, 'Duplicate entry'
+            # elif err.errno == errorcode.ER_NO_REFERENCED_ROW_2:
+            #     return False, 'No such LeetCode question in database'
 
     @staticmethod
     @retry_if_disconnected
-    def get_question_on_date(date: str) -> list:
+    def get_question_on_date(date=None) -> list:
         """
         This method get all the question on a specific date
 
         """
-        sql_cmd = f'SELECT id FROM {DataBase._database}.StudyOn WHERE date = %s'
+        if date is None:
+            date = datetime.datetime.now().strftime("%Y-%m-%d")
+        sql_cmd = f'SELECT * FROM {DataBase._database}.LeetCode l, {DataBase._database}.StudyOn s WHERE s.date = %s ' \
+                  f'AND l.id = s.id'
         val = date
-        DataBase.cursor.execute(sql_cmd, val)
+        DataBase.cursor.execute(sql_cmd, (val,))
         questions = DataBase.cursor.fetchall()
-        return questions
+        toReturn = []
+        for q in questions:
+            question = {'id': q[0], 'name': q[1], 'link': q[2], 'difficulty': q[3]}
+            toReturn.append(question)
+        return toReturn
 
     @staticmethod
     @retry_if_disconnected
@@ -129,14 +175,18 @@ class DataBase:
         sql_cmd = f'SELECT participant FROM {DataBase._database}.ParticipateIn WHERE date = %s AND id = %s'
         val = (date, problem_id)
         DataBase.cursor.execute(sql_cmd, val)
-        participants = DataBase.cursor.fetchall()
-        if qq in participants:
+        participant_object = DataBase.cursor.fetchall()
+        participant_list = []
+        for p in participant_object:
+            participant_list.append(p[0])
+        print(participant_list)
+        if qq in participant_list:
             return True
         return False
 
     @staticmethod
     @retry_if_disconnected
-    def submit_problem(date: str, problem_id: str, qq: str) -> None:
+    def submit_problem(date: str, problem_id: str, qq: str) -> tuple:
         """
         This function will be called when a user successfully submits the problem.
 
@@ -144,14 +194,21 @@ class DataBase:
         :param problem_id The unique id of problem, not problem name
         :param qq The qq account of user
         """
-        sql_cmd = f'INSERT INTO {DataBase._database}.ParticipateIn (date, id, participant) VALUES (%s, %s, %s)'
-        val = (date, problem_id, qq)
-        DataBase.cursor.execute(sql_cmd, val)
-        DataBase.connection.commit()
+        try:
+            sql_cmd = f'INSERT INTO {DataBase._database}.ParticipateIn (date, id, participant) VALUES (%s, %s, %s)'
+            val = (date, problem_id, qq)
+            DataBase.cursor.execute(sql_cmd, val)
+            DataBase.connection.commit()
+            return True, 'successfully submitted'
+        except mysql.connector.Error as err:
+            if err.errno == errorcode.ER_NO_REFERENCED_ROW_2:
+                return False, "No such problem or user"
+            elif err.errno == errorcode.ER_DUP_ENTRY:
+                return False, "record already exists"
 
     @staticmethod
     @retry_if_disconnected
-    def get_prob_participant(date: str, problem_id: str) -> list:
+    def get_prob_participant(problem_id: str, date=None) -> list:
         """
         This function get all participants for given problem on given date.
 
@@ -159,6 +216,8 @@ class DataBase:
         :param problem_id The unique id of problem, not problem name
         :return A list containing all users (identified by qq) that have submitted the problem
         """
+        if date is None:
+            date = datetime.datetime.now().strftime("%Y-%m-%d")
         sql_cmd = f'SELECT participant FROM {DataBase._database}.ParticipateIn WHERE date = %s AND id = %s'
         val = (date, problem_id)
         DataBase.cursor.execute(sql_cmd, val)
@@ -196,6 +255,7 @@ class DataBase:
     def update_user(qq_account: str, username: str) -> None:
         """
         This method updates the leetcode account of the user with qq_account.
+        no need to consider the situation when the user does not exist. It is already handled in UserOperation.py
         :param qq_account The qq_account of the user to update
         :param username The new leetcode username of the user
         """
