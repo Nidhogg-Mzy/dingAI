@@ -5,9 +5,10 @@ import time
 import datetime
 from threading import Thread
 import requests
-import Leetcode
+from Leetcode import Leetcode
 from DDLService import DDLService
 from multi_func_reply import Search
+from database import DataBase
 
 ListenSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 ListenSocket.bind(('127.0.0.1', 5701))
@@ -15,6 +16,7 @@ ListenSocket.listen(100)
 
 # const variable should be UPPER_CASE style
 BOT_QQ_ACCOUNT = 3292297816  # st_bot: 2585899559  # bot: 3292297816
+
 
 def send_msg(resp_dict):
     client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -62,6 +64,7 @@ def rev_msg():  # json or None
     client.close()
     return rev_json
 
+
 def check_scheduled_task():
     """
     This function stores scheduled tasks.
@@ -73,7 +76,7 @@ def check_scheduled_task():
         if curr_time.hour == 8 and curr_time.minute == 0:
             ddl_service = DDLService()
             send_msg({'msg_type': 'group', 'number': '705716007', 'msg':
-                     f'大家早上好呀, 又是新的一天，来看看今天还有哪些ddl呢>_<\n{ddl_service.process_query("ddl today".split(" "), "0")}'})
+                f'大家早上好呀, 又是新的一天，来看看今天还有哪些ddl呢>_<\n{ddl_service.process_query("ddl today".split(" "), "0")}'})
             ddl_service.remove_expired_ddl()  # remove expired ddl timely
             time.sleep(60)
 
@@ -160,20 +163,18 @@ def rev_group_msg(rev):
     group = rev['group_id']
     if f'[CQ:at,qq={BOT_QQ_ACCOUNT}]' in rev["raw_message"]:
         qq = rev['sender']['user_id']
-        message_parts = rev['raw_message'].trim().split(' ')
+        message_parts = rev['raw_message'].strip().split(' ')
         if message_parts[1] == '在吗':
             send_msg({'msg_type': 'group', 'number': group, 'msg': reply_msg[random.randint(0, len(reply_msg) - 1)]})
             # send_msg({'msg_type': 'group', 'number': group, 'msg': '[CQ:poke,qq={}]'.format(qq)})
         # leetcode feature
         elif message_parts[1] == 'leet':
-            leetcode = Leetcode.Leetcode()
             send_msg({'msg_type': 'group', 'number': group,
-                      'msg': f"[CQ:at,qq={qq}]\n" + leetcode.process_query(message_parts, qq)})
+                      'msg': f"[CQ:at,qq={qq}]\n" + Leetcode.process_query(message_parts, qq)})
         # DDL feature
         elif message_parts[1] == 'ddl':
-            service = DDLService()
             send_msg({'msg_type': 'group', 'number': group,
-                      'msg': f"[CQ:at,qq={qq}]\n" + service.process_query(message_parts[1:], qq)})
+                      'msg': f"[CQ:at,qq={qq}]\n" + DDLService.process_query(message_parts[1:], qq)})
         else:
             content = ""
             for i in range(1, len(message_parts)):
@@ -210,9 +211,15 @@ def message_process_tasks():
 
 if __name__ == '__main__':
     # add a thread to check scheduled tasks
+    DataBase.init_database()
+    print("database initialized")
     trd_scheduled = Thread(target=check_scheduled_task)
     trd_scheduled.start()
 
     # add a thread to process message reply tasks
     trd_msg_reply = Thread(target=message_process_tasks)
     trd_msg_reply.start()
+
+    # add a thread to update the question_list in Leetcode daily
+    trd_update_question_list = Thread(target=Leetcode.update_question_list())
+    trd_update_question_list.start()
