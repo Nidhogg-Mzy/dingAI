@@ -98,11 +98,10 @@ class DataBase:
                 print("Inserted question tag:", id_, tag)
             return True, None
         except mysql.connector.Error as err:
-            return False, err
-            # if err.errno == errorcode.ER_DUP_ENTRY:
-            #     return False, "Duplicate entry"
-            # else:
-            #     print(err)
+            if err.errno == errorcode.ER_DUP_ENTRY:
+                return False, f'数据库中已存在id为：{id_}的题目'
+            else:
+                return False, '数据库发生未知错误，请联系管理员处理'
 
     @staticmethod
     @retry_if_disconnected
@@ -118,7 +117,7 @@ class DataBase:
 
     @staticmethod
     @retry_if_disconnected
-    def insert_studyOn(id_: str, date=None) -> tuple:
+    def insert_studyOn(id_: str, date: str = None) -> tuple:
         """
         This method insert a new record to the table StudyOn,
         should give user message after return False(implement in LeetCode.py)
@@ -127,22 +126,18 @@ class DataBase:
             sql_cmd = f'INSERT INTO {DataBase._database}.StudyOn(date, id) VALUES (%s, %s)'
             if date is None:
                 date = datetime.datetime.now().strftime("%Y-%m-%d")
-                val = (date, id_)
-            else:
-                val = (date, id_)
-            DataBase.cursor.execute(sql_cmd, val)
+            DataBase.cursor.execute(sql_cmd, (date, id_))
             DataBase.connection.commit()
-            return True, 'inserted successfully'
+            return True, None
         except mysql.connector.Error as err:
-            return False, err
-            # if err.errno == errorcode.ER_DUP_ENTRY:
-            #     return False, 'Duplicate entry'
-            # elif err.errno == errorcode.ER_NO_REFERENCED_ROW_2:
-            #     return False, 'No such LeetCode question in database'
+            if err.errno == errorcode.ER_DUP_ENTRY:
+                return False, f'数据库中已存在id为：{id_}， 日期为{date}的刷题计划'
+            elif err.errno == errorcode.ER_NO_REFERENCED_ROW_2:
+                return False, f'数据库中不存在id为：{id_}的题目'
 
     @staticmethod
     @retry_if_disconnected
-    def get_question_on_date(date=None) -> list:
+    def get_question_on_date(date: str = None) -> list:
         """
         This method get all the question on a specific date
 
@@ -151,8 +146,7 @@ class DataBase:
             date = datetime.datetime.now().strftime("%Y-%m-%d")
         sql_cmd = f'SELECT * FROM {DataBase._database}.LeetCode l, {DataBase._database}.StudyOn s WHERE s.date = %s ' \
                   f'AND l.id = s.id'
-        val = date
-        DataBase.cursor.execute(sql_cmd, (val,))
+        DataBase.cursor.execute(sql_cmd, (date,))
         questions = DataBase.cursor.fetchall()
         toReturn = []
         for q in questions:
@@ -193,6 +187,7 @@ class DataBase:
         :param date The date of given problem
         :param problem_id The unique id of problem, not problem name
         :param qq The qq account of user
+        :return True,
         """
         try:
             sql_cmd = f'INSERT INTO {DataBase._database}.ParticipateIn (date, id, participant) VALUES (%s, %s, %s)'
@@ -202,9 +197,11 @@ class DataBase:
             return True, 'successfully submitted'
         except mysql.connector.Error as err:
             if err.errno == errorcode.ER_NO_REFERENCED_ROW_2:
-                return False, "No such problem or user"
+                return False, f'数据库中不存在id为：{problem_id}的题目，请先用leet insert命令插入题目再试'
             elif err.errno == errorcode.ER_DUP_ENTRY:
-                return False, "record already exists"
+                pass
+            else:
+                return False, '数据库发生未知错误，请联系管理员处理'
 
     @staticmethod
     @retry_if_disconnected
@@ -244,11 +241,18 @@ class DataBase:
         :return A dict of all users, where key is qq_account, value is leetcode username.
         """
         sql_cmd = f'SELECT * FROM {DataBase._database}.Users'
-
         DataBase.cursor.execute(sql_cmd)
         users = DataBase.cursor.fetchall()
 
         return {user[0]: user[1] for user in users}
+
+    @staticmethod
+    @retry_if_disconnected
+    def select_user(username: str) -> str:
+        sql_cmd = f'SELECT QQAccount FROM {DataBase._database}.Users WHERE username = {username}'
+        DataBase.cursor.execute(sql_cmd)
+        username = DataBase.cursor.fetchall()
+        return username
 
     @staticmethod
     @retry_if_disconnected
@@ -293,4 +297,6 @@ if __name__ == '__main__':
     # print("inserted successfully")
 
     DataBase.init_database()
-    DataBase.get_user()
+    print(DataBase.get_question_on_date('2022-06-06'))
+    # DataBase.submit_problem('2022-06-06', '2', '34295782673')
+    # print(DataBase.check_user_finish_problem('2022-06-06', 'longest-turbulent-subarray', '3429582673'))
