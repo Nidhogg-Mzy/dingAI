@@ -76,7 +76,7 @@ class DataBase:
 
     @staticmethod
     @retry_if_disconnected
-    def insert_leetcode(id_: str, name: str, link: str, difficulty: str, tags: list) -> tuple:
+    def insert_leetcode(id_: str, name: str, link: str, difficulty: str, tags: list = None) -> tuple:
         """
         This method insert leetcode question into table leetcode in database
         id_, name, link, difficulty goes to LeetCode while we should also construct
@@ -85,64 +85,67 @@ class DataBase:
         try:
             sql_cmd = f'INSERT INTO {DataBase._database}.LeetCode (id, name, link, difficulty) ' \
                       'VALUES (%s, %s, %s, %s)'
-            val = (id_, name, link, difficulty)
-            DataBase.cursor.execute(sql_cmd, val)
+            print(id_ + '\n' + name + '\n' + link + '\n' + difficulty)
+            DataBase.cursor.execute(sql_cmd, (id_, name, link, difficulty))
             DataBase.connection.commit()
             print("Inserted leetcode question:", id_, name, link, difficulty)
-            for tag in tags:
-                sql_cmd = f'INSERT INTO {DataBase._database}.QuestionTag (id, tag) ' \
-                          'VALUES (%s, %s)'
-                val = (id_, tag)
-                DataBase.cursor.execute(sql_cmd, val)
-                DataBase.connection.commit()
-                print("Inserted question tag:", id_, tag)
-            return True, None
+            if tags is not None:
+                for tag in tags:
+                    sql_cmd = f'INSERT INTO {DataBase._database}.QuestionTags (id, tag) ' \
+                              'VALUES (%s, %s)'
+                    DataBase.cursor.execute(sql_cmd, (id_, tag))
+                    DataBase.connection.commit()
+                    print("Inserted question tag:", id_, tag)
+            return True, ''
         except mysql.connector.Error as err:
             if err.errno == errorcode.ER_DUP_ENTRY:
-                return False, f'数据库中已存在id为：{id_}的题目'
+                return True, ''
             else:
-                return False, '数据库发生未知错误，请联系管理员处理'
+                return False, str(err)
 
     @staticmethod
     @retry_if_disconnected
-    def delete_leetcode(id_: str) -> tuple:
+    def delete_leetcode(id_: str, date: str = '') -> tuple:
+        if date == '':
+            date = datetime.datetime.now().strftime("%Y-%m-%d")
         try:
-            sql_cmd = f'DELETE FROM {DataBase._database}.LeetCode WHERE id = %s'
-            val = (id_,)
-            DataBase.cursor.execute(sql_cmd, val)
+            sql_cmd = f'DELETE FROM {DataBase._database}.StudyOn WHERE id = %s and date = %s'
+            DataBase.cursor.execute(sql_cmd, (id_, date))
             DataBase.connection.commit()
-            return True, None
+            return True, 'successfully deleted'
         except mysql.connector.Error as err:
-            return False, err
+            return False, str(err)
 
     @staticmethod
     @retry_if_disconnected
-    def insert_studyOn(id_: str, date: str = None) -> tuple:
+    def insert_studyOn(id_: str, date: str = '') -> tuple:
         """
         This method insert a new record to the table StudyOn,
         should give user message after return False(implement in LeetCode.py)
         """
         try:
             sql_cmd = f'INSERT INTO {DataBase._database}.StudyOn(date, id) VALUES (%s, %s)'
-            if date is None:
+            if date == '':
                 date = datetime.datetime.now().strftime("%Y-%m-%d")
             DataBase.cursor.execute(sql_cmd, (date, id_))
             DataBase.connection.commit()
-            return True, None
+            return True, ''
         except mysql.connector.Error as err:
             if err.errno == errorcode.ER_DUP_ENTRY:
                 return False, f'数据库中已存在id为：{id_}， 日期为{date}的刷题计划'
             elif err.errno == errorcode.ER_NO_REFERENCED_ROW_2:
                 return False, f'数据库中不存在id为：{id_}的题目'
+            else:
+                return False, str(err)
 
     @staticmethod
     @retry_if_disconnected
-    def get_question_on_date(date: str = None) -> list:
+    def get_question_on_date(date: str = '') -> list:
         """
         This method get all the question on a specific date
 
         """
-        if date is None:
+        if date == '':
             date = datetime.datetime.now().strftime("%Y-%m-%d")
         sql_cmd = f'SELECT * FROM {DataBase._database}.LeetCode l, {DataBase._database}.StudyOn s WHERE s.date = %s ' \
                   f'AND l.id = s.id'
@@ -195,30 +198,34 @@ class DataBase:
             DataBase.cursor.execute(sql_cmd, val)
             DataBase.connection.commit()
             return True, 'successfully submitted'
-        except mysql.connector.Error as err:
-            if err.errno == errorcode.ER_NO_REFERENCED_ROW_2:
-                return False, f'数据库中不存在id为：{problem_id}的题目，请先用leet insert命令插入题目再试'
-            elif err.errno == errorcode.ER_DUP_ENTRY:
-                pass
-            else:
-                return False, '数据库发生未知错误，请联系管理员处理'
+        except mysql.connector.Error:
+            # other possible exception are already handled in leetcode.py
+            return False, '数据库发生未知错误，请联系管理员处理'
 
     @staticmethod
     @retry_if_disconnected
-    def get_prob_participant(problem_id: str, date=None) -> list:
+    def get_prob_participant(problem_id: str, date: str = '', username: bool = False) -> list:
         """
         This function get all participants for given problem on given date.
 
         :param date The date of given problem
         :param problem_id The unique id of problem, not problem name
+        :param username True if want to get username instead of QQAccount
         :return A list containing all users (identified by qq) that have submitted the problem
         """
-        if date is None:
+        if date == '':
             date = datetime.datetime.now().strftime("%Y-%m-%d")
-        sql_cmd = f'SELECT participant FROM {DataBase._database}.ParticipateIn WHERE date = %s AND id = %s'
-        val = (date, problem_id)
-        DataBase.cursor.execute(sql_cmd, val)
-        return DataBase.cursor.fetchall()
+        if not username:
+            sql_cmd = f'SELECT participant FROM {DataBase._database}.ParticipateIn WHERE date = %s AND id = %s'
+            DataBase.cursor.execute(sql_cmd, (date, problem_id))
+            result = DataBase.cursor.fetchall()
+        else:
+            sql_cmd = f'SELECT u.username FROM {DataBase._database}.Users u, {DataBase._database}.ParticipateIn p WHERE p.participant = u.QQAccount and p.date = %s and p.id = %s'
+            DataBase.cursor.execute(sql_cmd, (date, problem_id))
+            result = DataBase.cursor.fetchall()
+        toReturn = [r[0] for r in result]
+        return toReturn
+
 
     @staticmethod
     @retry_if_disconnected
@@ -248,11 +255,13 @@ class DataBase:
 
     @staticmethod
     @retry_if_disconnected
-    def select_user(username: str) -> str:
-        sql_cmd = f'SELECT QQAccount FROM {DataBase._database}.Users WHERE username = {username}'
-        DataBase.cursor.execute(sql_cmd)
-        username = DataBase.cursor.fetchall()
-        return username
+    def select_user(username: str) -> tuple:
+        sql_cmd = f'SELECT QQAccount FROM {DataBase._database}.Users WHERE username = %s'
+        DataBase.cursor.execute(sql_cmd, (username, ))
+        QQAcount = DataBase.cursor.fetchall()
+        if not QQAcount:
+            return False, ''
+        return True, QQAcount[0][0]
 
     @staticmethod
     @retry_if_disconnected
@@ -264,9 +273,8 @@ class DataBase:
         :param username The new leetcode username of the user
         """
         sql_cmd = f'UPDATE {DataBase._database}.Users SET username = %s WHERE QQAccount = %s'
-        val = (username, qq_account)
 
-        DataBase.cursor.execute(sql_cmd, val)
+        DataBase.cursor.execute(sql_cmd, (username, qq_account))
         DataBase.connection.commit()
 
     @staticmethod
@@ -289,14 +297,4 @@ class DatabaseDisconnectException(Exception):
 
 
 if __name__ == '__main__':
-    # d = DataBase()
-    # d.insert_leetcode("2022-5-30", "test", "test", "test", "test", json.dumps(["Nidhogg-mzy", "enor2017"]))
-    # print(d.get_user()[1])
-    # d.update_user('34295782673', 'who loves zxy')
-    # print(d.get_user()[1])
-    # print("inserted successfully")
-
     DataBase.init_database()
-    print(DataBase.get_question_on_date('2022-06-06'))
-    # DataBase.submit_problem('2022-06-06', '2', '34295782673')
-    # print(DataBase.check_user_finish_problem('2022-06-06', 'longest-turbulent-subarray', '3429582673'))
