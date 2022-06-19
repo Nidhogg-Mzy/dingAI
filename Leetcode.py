@@ -326,7 +326,8 @@ class Leetcode:
                 question_obj = q
                 break
         if question_obj is None:
-            return False  # this should not happen, since we ensured valid parameters
+            return False, f'question{question_name} do not exist, please insert leetcode question ' \
+                          f'first using leet insert'  # this should not happen, since we ensured valid parameters
 
         # check if user has already submitted the question
         participants = DataBase.get_prob_participant(question_obj['id'])
