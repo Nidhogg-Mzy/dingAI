@@ -22,7 +22,7 @@ class Leetcode:
             "difficulty": "中等",
     }
     """
-    question_list = []
+    question_list = DataBase.get_question_on_date()
 
     @staticmethod
     def get_recent_passed_submission(username: str, debug=False) -> list:
@@ -132,15 +132,18 @@ class Leetcode:
         return problem_name in passed_record
 
     @staticmethod
-    def display_questions(question_list: list) -> str:
+    def display_questions(question_list: list, date: str = '') -> str:
         """
         Given a list of questions, display them in a readable format.
         :param question_list: A list of questions, each question is a dict.
+        :param date: The date of the questions, if not given, will use today's date
         :return: A string containing the question list in readable format
         """
         output = ""
+        if date == '':
+            date = datetime.datetime.now().strftime("%Y-%m-%d")
         for question in question_list:
-            participants = DataBase.get_prob_participant(question["id"])
+            participants = DataBase.get_prob_participant(question["id"], date, username = True)
             output += (
                 f"{'=' * 10}\n"
                 f"题目名称: {question['name']}\n"
@@ -176,13 +179,12 @@ class Leetcode:
             questions = DataBase.get_question_on_date(query[2])
             if not questions:
                 return f"[Error] 日期{query[2]}还没有题目哦."
-            return f"{query[2]}的题目列表:\n{Leetcode.display_questions(questions)}"
+            return f"{query[2]}的题目列表:\n{Leetcode.display_questions(questions, query[2])}"
         if query[2] == 'status':
             # the user must have been registered before using this command
             if len(query) > 3:
                 return "[Error] Invalid syntax. Use \"leet help\" to check usage."
-            user_op = UserOperation()
-            status_, username_ = user_op.get_leetcode(str(user_qq))
+            status_, username_ = UserOperation.get_leetcode(str(user_qq))
             if not status_:
                 return '我还不知道您的LeetCode账户名哦，试试leet register <your leetcode username>'
 
@@ -190,7 +192,7 @@ class Leetcode:
             # this query will not retrieve passed records from leetcode website, we simply
             # retrieve the records in our database. User should use 'submit' to invoke a check.
             for q in Leetcode.question_list:
-                questions_status[(q['id'], q['name'])] = username_ in q['participants']
+                questions_status[(q['id'], q['name'])] = username_ in DataBase.get_prob_participant(q['id'], str(datetime.date.today()), True)
 
             to_return = "今日题目你的完成状态: \n"
             for (k, v) in questions_status.items():
@@ -199,12 +201,11 @@ class Leetcode:
             return to_return
 
         if query[2] == 'submit':
-            if not 3 <= len(query) <= 4:
+            if not 3 <= len(query) <= 5:
                 return "[Error] Invalid syntax. Use \"leet help\" to check usage."
 
             # user must have been registered before using this command
-            user_op = UserOperation()
-            status_, username_ = user_op.get_leetcode(str(user_qq))
+            status_, username_ = UserOperation.get_leetcode(str(user_qq))
             if not status_:
                 return '我还不知道您的LeetCode账户名哦，试试leet register <your leetcode username>'
 
@@ -215,7 +216,7 @@ class Leetcode:
                 today_questions = Leetcode.question_list
                 for q in today_questions:
                     curr_status = Leetcode.submit_question(str(datetime.date.today()), q['name'], username_)
-                    if curr_status:
+                    if curr_status[0]:
                         to_return += f"{q['name']}: 您已成功提交!\n"
                     else:
                         to_return += f"{q['name']}: 您好像还没有完成这道题.\n"
@@ -228,9 +229,8 @@ class Leetcode:
                     return f"[Error] 今天没有名为'{question_name}'的题目哦!"
 
                 # submit the question
-                if Leetcode.submit_question(str(datetime.date.today()), question_name, username_):
-                    return f"提交题目 {question_name} 成功!"
-                return f"您好像还没有完成题目 {question_name} 哦."
+                result = Leetcode.submit_question(str(datetime.date.today()), question_name, username_)
+                return result[1]
 
         # register: match the qq account with leetcode username,
         # so user don't need to provide username when query
@@ -239,16 +239,14 @@ class Leetcode:
             if len(query) != 4:
                 return '[Error]正确食用方法: leet register <your leetcode username>'
 
-            user_op = UserOperation()
-            _, msg_ = user_op.register(str(user_qq), query[3])
+            _, msg_ = UserOperation.register(str(user_qq), query[3])
             return msg_
         # check username, for already registered users
         if query[2] == 'username':
             # if query is invalid
             if len(query) != 3:
                 return '[Error]正确食用方法: leet username'
-            user_op = UserOperation()
-            status_, username_ = user_op.get_leetcode(str(user_qq))
+            status_, username_ = UserOperation.get_leetcode(str(user_qq))
             if not status_:
                 return '我还不知道您的LeetCode用户名诶，要不要试试 leet register <your leetcode username>'
             return f'您已绑定LeetCode的用户名是: {username_}'
@@ -266,28 +264,14 @@ class Leetcode:
             question_details = Leetcode.get_prob_detail_from_id(question_id)
             if not question_details:
                 return f'[Error] 找不到id为"{question_id}"的题目. 如果你认为这是一个错误，请联系管理员.'
-
-            # store the question
-            # question_json = {
-            #     'name': question_details['name'],
-            #     'id': question_id,
-            #     'link': question_details['link'],
-            #     'difficulty': question_details['difficulty'],
-            # }
             result1 = DataBase.insert_leetcode(question_id, question_details['name'], question_details['link'],
                                                question_details['difficulty'], query[5:])
             result2 = DataBase.insert_studyOn(question_id, date_received)
             if result1[0] and result2[0]:
-                print("successfully return")
+                Leetcode.question_list = DataBase.get_question_on_date()
                 return f'成功插入题目: {question_details["name"]}, 日期为: {date_received}'
             else:
                 return result1[1] + result2[1]
-                # if date_received not in self.question_list:
-                #     self.question_list[date_received] = [question_json]
-                # else:
-                #     self.question_list[date_received].append(question_json)
-                # store the question in database
-                # self.store_questions()`
 
         if query[2] == 'delete':
             if len(query) != 5 or (len(query) > 2 and query[3] == 'help'):
@@ -303,8 +287,9 @@ class Leetcode:
                 return f'[Error] 日期为"{date_received}"的题目中没有id为"{question_id}"的题目.'
 
             # delete the question
-            result = DataBase.delete_leetcode(question_id)
+            result = DataBase.delete_leetcode(question_id, date_received)
             if result[0]:
+                Leetcode.question_list = DataBase.get_question_on_date()
                 return f'成功删除题目: {question_id}, 日期为: {date_received}'
             else:
                 return result[1]
@@ -326,7 +311,7 @@ class Leetcode:
         return "[Error] Invalid syntax. Use \"leet help\" to check usage."
 
     @staticmethod
-    def submit_question(question_date: str, question_name: str, username: str) -> bool:
+    def submit_question(question_date: str, question_name: str, username: str) -> tuple:
         """
         Perform a user's submission of given question on specific date. We assume the parameters are valid.
         :param question_date: date of the question
@@ -346,30 +331,33 @@ class Leetcode:
         # check if user has already submitted the question
         participants = DataBase.get_prob_participant(question_obj['id'])
         if username in participants:
-            return True
+            return True, f'{username}已经提交过{question_name}'
 
         # check if user finished the question
         status = Leetcode.check_finish_problem(question_name, username)
         if status:
-            DataBase.submit_problem(question_date, question_obj['id'], DataBase.select_user(username))
-            return True
-        return False
+            user = DataBase.select_user(username)
+            if user[0] is False:
+                return False, '用户不存在'
+            result = DataBase.submit_problem(question_date, question_obj['id'], user[1])
+            print(result)
+            return result
+        return False, f'{username}没有完成{question_name}'
 
     @staticmethod
     def update_question_list():
         """
-        Update the question list.
+        Update the question list every 5 min.
         :return: None
         """
         # get the question list from leetcode
         while True:
             # get current time in UTC+8
             curr_time = datetime.datetime.utcnow() + datetime.timedelta(hours=8)
-            # 12:00 AM, show ddl today
+            # check if it is midnight
             if curr_time.hour == 0 and curr_time.minute == 0:
                 Leetcode.question_list = DataBase.get_question_on_date(curr_time.strftime('%Y-%m-%d'))
-
-            sleep(20)  # allow some buffer time.
+                sleep(300)  # allow some buffer time.
 
 
 if __name__ == '__main__':
