@@ -2,7 +2,7 @@ from database import DataBase
 
 
 class UserOperation:
-    user_list = {}  # format: {qq_account: leetcode_username}
+    user_list = DataBase.get_user() # format: {qq_account: leetcode_username}
 
     @staticmethod
     def update_user_list() -> None:
