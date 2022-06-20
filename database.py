@@ -186,7 +186,7 @@ class DataBase:
         :return A list of questions on certain date.
         """
         if date == '':
-            date = datetime.datetime.today()
+            date = datetime.date.today()
         sql_cmd = f'SELECT * FROM {DataBase._database}.LeetCode l, {DataBase._database}.StudyOn s WHERE s.date = %s ' \
                   f'AND l.id = s.id'
         DataBase.cursor.execute(sql_cmd, (date,))
@@ -245,19 +245,17 @@ class DataBase:
 
     @staticmethod
     @retry_if_disconnected
-    def get_prob_participant(problem_id: str, date: str = '', is_username: bool = False) -> list:
+    def get_prob_participant(problem_id: str, date: str, is_username: bool = False) -> list:
         """
         This function get all participants for given problem on given date.
 
-        :param date The date of given problem, if not given, use today's date
+        :param date The date of given problem, cannot be empty
         :param problem_id The unique id of problem, not problem name
         :param is_username True if want to get leetcode username instead of qq account
 
         :return A list containing all users (identified by qq or leetcode username, determined by parameter is_username)
         that have submitted the problem
         """
-        if date == '':
-            date = datetime.datetime.now().strftime("%Y-%m-%d")
         if not is_username:
             sql_cmd = f'SELECT participant FROM {DataBase._database}.ParticipateIn WHERE date = %s AND id = %s'
             DataBase.cursor.execute(sql_cmd, (date, problem_id))
