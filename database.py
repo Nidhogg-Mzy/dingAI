@@ -193,7 +193,8 @@ class DataBase:
         questions = DataBase.cursor.fetchall()
         to_return = []
         for q in questions:
-            question = {'id': q[0], 'name': q[1], 'link': q[2], 'difficulty': q[3]}
+            participants = DataBase.get_prob_participant(q[0], date, is_username=True)
+            question = {'id': q[0], 'name': q[1], 'link': q[2], 'difficulty': q[3], 'participants': participants}
             to_return.append(question)
         return to_return
 
@@ -244,27 +245,29 @@ class DataBase:
 
     @staticmethod
     @retry_if_disconnected
-    def get_prob_participant(problem_id: str, date: str = '', username: bool = False) -> list:
+    def get_prob_participant(problem_id: str, date: str = '', is_username: bool = False) -> list:
         """
         This function get all participants for given problem on given date.
 
-        :param date The date of given problem
+        :param date The date of given problem, if not given, use today's date
         :param problem_id The unique id of problem, not problem name
-        :param username True if want to get username instead of QQAccount
-        :return A list containing all users (identified by qq) that have submitted the problem
+        :param is_username True if want to get leetcode username instead of qq account
+
+        :return A list containing all users (identified by qq or leetcode username, determined by parameter is_username)
+        that have submitted the problem
         """
         if date == '':
             date = datetime.datetime.now().strftime("%Y-%m-%d")
-        if not username:
+        if not is_username:
             sql_cmd = f'SELECT participant FROM {DataBase._database}.ParticipateIn WHERE date = %s AND id = %s'
             DataBase.cursor.execute(sql_cmd, (date, problem_id))
             result = DataBase.cursor.fetchall()
         else:
-            sql_cmd = f'SELECT u.username FROM {DataBase._database}.Users u, {DataBase._database}.ParticipateIn p WHERE p.participant = u.QQAccount and p.date = %s and p.id = %s'
+            sql_cmd = f'SELECT u.username FROM {DataBase._database}.Users u, {DataBase._database}.ParticipateIn p ' \
+                      f'WHERE p.participant = u.QQAccount and p.date = %s and p.id = %s'
             DataBase.cursor.execute(sql_cmd, (date, problem_id))
             result = DataBase.cursor.fetchall()
-        toReturn = [r[0] for r in result]
-        return toReturn
+        return [r[0] for r in result]
 
     @staticmethod
     @retry_if_disconnected

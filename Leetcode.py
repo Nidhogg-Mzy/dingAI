@@ -20,6 +20,7 @@ class Leetcode:
             "name": "978. 最长湍流子数组",
             "link": "https://leetcode.cn/problems/longest-turbulent-subarray/",
             "difficulty": "中等",
+            "participants": ["user1", "user2"],
     }
     """
     question_list = DataBase.get_question_on_date()
@@ -136,24 +137,22 @@ class Leetcode:
         return problem_name in passed_record
 
     @staticmethod
-    def display_questions(question_list: list, date: str = '') -> str:
+    def display_questions(question_list: list) -> str:
         """
         Given a list of questions, display them in a readable format.
+
         :param question_list: A list of questions, each question is a dict.
-        :param date: The date of the questions, if not given, will use today's date
+
         :return: A string containing the question list in readable format
         """
         output = ""
-        if date == '':
-            date = datetime.datetime.now().strftime("%Y-%m-%d")
         for question in question_list:
-            participants = DataBase.get_prob_participant(question["id"], date, username = True)
             output += (
                 f"{'=' * 10}\n"
                 f"题目名称: {question['name']}\n"
                 f"题目链接: {question['link']}\n"
                 f"题目难度: {question['difficulty']}\n"
-                f"已完成名单: {participants}\n")
+                f"已完成名单: {question['participants']}\n")
         return output
 
     @staticmethod
@@ -193,11 +192,11 @@ class Leetcode:
             if not Leetcode.question_list:
                 return "[Error] 今天还没有题目哦."
             return f"今日题目列表:\n{Leetcode.display_questions(Leetcode.question_list)}"
-        if re.search(r"^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$", query[2]):
+        if Leetcode.check_valid_date(query[2]):
             questions = DataBase.get_question_on_date(query[2])
             if not questions:
                 return f"[Error] 日期{query[2]}还没有题目哦."
-            return f"{query[2]}的题目列表:\n{Leetcode.display_questions(questions, query[2])}"
+            return f"{query[2]}的题目列表:\n{Leetcode.display_questions(questions)}"
         if query[2] == 'status':
             # the user must have been registered before using this command
             if len(query) > 3:
@@ -208,14 +207,14 @@ class Leetcode:
 
             questions_status = {}  # {('question id', 'question name'): true/false}
             # this query will not retrieve passed records from leetcode website, we simply
-            # retrieve the records in our database. User should use 'submit' to invoke a check.
+            # retrieve the records in cache. User should use 'submit' to invoke a check.
             for q in Leetcode.question_list:
-                questions_status[(q['id'], q['name'])] = username_ in DataBase.get_prob_participant(q['id'], str(datetime.date.today()), True)
+                questions_status[(q['id'], q['name'])] = username_ in q['participants']
 
             to_return = "今日题目你的完成状态: \n"
             for (k, v) in questions_status.items():
                 to_return += f"{k[0]} {k[1]}: {'已通过!' if v else '还没通过哦.'}\n"
-            to_return += "如果有记录错误, 尝试先通过leet submit提交一下哦!"
+            to_return += "如果有记录错误, 尝试先通过 leet submit 提交一下哦!"
             return to_return
 
         if query[2] == 'submit':
@@ -385,8 +384,8 @@ class Leetcode:
         if question_obj is None:
             return "[Internal Error] 无法找到题目"    # this should not happen, since we ensured valid parameters
 
-        # check if user has already submitted the question  TODO: retrieve from cache
-        participants = DataBase.get_prob_participant(question_obj['id'], username=True)
+        # check if user has already submitted the question
+        participants = [q['participants'] for q in Leetcode.question_list]
         if username in participants:
             return "您已提交过此题目"
 
@@ -400,6 +399,8 @@ class Leetcode:
         if not result:
             return "[Internal Error] 用户通过题目，但无法将通过信息同步到数据库"
 
+        # also update cache
+        Leetcode.question_list = DataBase.get_question_on_date()
         return "成功提交此题目!"
 
     @staticmethod
