@@ -24,6 +24,10 @@ class Leetcode:
     """
     question_list = DataBase.get_question_on_date()
 
+    ####################
+    # Helper Functions #
+    ####################
+
     @staticmethod
     def get_recent_passed_submission(username: str, debug=False) -> list:
         """
@@ -152,6 +156,20 @@ class Leetcode:
                 f"已完成名单: {participants}\n")
         return output
 
+    @staticmethod
+    def check_valid_date(date: str) -> bool:
+        """
+        This function checks if the input date is a valid date, in format YYYY-MM-DD.
+
+        :param date: the given date to check
+        :return True if valid, False otherwise
+        """
+        return re.search(r"^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$", date) is not None
+
+    ######################################
+    # Main Function for Query Processing #
+    ######################################
+
     # pylint: disable=too-many-branches
     @staticmethod
     def process_query(query: list, user_qq: str) -> str:
@@ -256,24 +274,13 @@ class Leetcode:
                        '多个tag用空格分隔, 没有tag请留空.'
             date_received = query[3]
             question_id = query[4]
+            tags = query[5:]
 
             # check if date is valid
-            if not re.search(r"^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$", date_received):
+            if not Leetcode.check_valid_date(date_received):
                 return '[Error] 日期格式不合法, 请输入YYYY-MM-DD格式的日期.'
-            # get question details
-            question_details = Leetcode.get_prob_detail_from_id(question_id)
-            if not question_details:
-                return f'[Error] 找不到id为"{question_id}"的题目. 如果你认为这是一个错误，请联系管理员.'
-            result1 = DataBase.insert_leetcode(question_id, question_details['name'], question_details['link'],
-                                               question_details['difficulty'], query[5:])
-            if not result1[0]:
-                return result1[1]
-            result2 = DataBase.insert_studyOn(question_id, date_received)
-            if result1[0] and result2[0]:
-                Leetcode.question_list = DataBase.get_question_on_date()
-                return f'成功插入题目: {question_details["name"]}, 日期为: {date_received}'
-            else:
-                return result1[1] + result2[1]
+
+            return Leetcode.insert_question(question_id, tags, date_received)
 
         if query[2] == 'delete':
             if len(query) != 5 or (len(query) > 2 and query[3] == 'help'):
@@ -311,6 +318,44 @@ class Leetcode:
 
         # invalid command
         return "[Error] Invalid syntax. Use \"leet help\" to check usage."
+
+    ####################
+    # Function Modules #
+    ####################
+
+    @staticmethod
+    def insert_question(question_id: str, tags: list, date: str) -> str:
+        """
+        process the query to insert question on certain date.
+
+        :param question_id: problem id
+        :param tags: A list of tags. Can be empty, not cannot be None
+        :param date: on which date to insert, must be a valid date
+
+        :return The result message to display to user.
+        """
+        # get question details
+        question_details = Leetcode.get_prob_detail_from_id(question_id)
+        if not question_details:
+            return f'[Error] 找不到id为"{question_id}"的题目. 如果你认为这是一个错误，请联系管理员.'
+
+        # insert problem to database
+        result1 = DataBase.insert_leetcode(question_id, question_details['name'], question_details['link'],
+                                           question_details['difficulty'])
+        if not result1[0]:
+            return result1[1]       # return error message if failure
+
+        # insert question tags
+        result2 = DataBase.insert_question_tags(question_id, tags)
+        if not result2[0]:
+            return result2[1]       # return error message if failure
+
+        # insert study plan
+        result3 = DataBase.insert_study_on(question_id, date)
+        if not result3[0]:
+            return result3[1]       # return error message if failure
+
+        return f'成功插入题目: {question_details["name"]}, 日期为: {date}'
 
     @staticmethod
     def submit_question(question_date: str, question_name: str, username: str) -> tuple:

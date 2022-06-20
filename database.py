@@ -76,29 +76,56 @@ class DataBase:
 
     @staticmethod
     @retry_if_disconnected
-    def insert_leetcode(id_: str, name: str, link: str, difficulty: str, tags: list = None) -> tuple:
+    def insert_leetcode(id_: str, name: str, link: str, difficulty: str) -> tuple:
         """
-        This method insert leetcode question into table leetcode in database
-        id_, name, link, difficulty goes to LeetCode while we should also construct
-        corresponding QuestionTag record Accordingly by insert id_ and tag into QuestionTag
+        This method insert leetcode question into table leetcode in database, and
+        insert tags into table QuestionTags.
+
+        :param id_: problem id
+        :param name: problem name
+        :param link: problem link
+        :param difficulty: problem difficulty
+
+        :return A tuple [bool, str], 1st position is True if successfully inserted, False if failed.
+        The 2nd position is error message if failed.
         """
         try:
             sql_cmd = f'INSERT INTO {DataBase._database}.LeetCode (id, name, link, difficulty) ' \
-                      'VALUES (%s, %s, %s, %s)'
+                       'VALUES (%s, %s, %s, %s)'
             DataBase.cursor.execute(sql_cmd, (id_, name, link, difficulty))
             DataBase.connection.commit()
-            if tags is not None:
-                for tag in tags:
-                    sql_cmd = f'INSERT INTO {DataBase._database}.QuestionTags (id, tag) ' \
-                              'VALUES (%s, %s)'
-                    DataBase.cursor.execute(sql_cmd, (id_, tag))
-                    DataBase.connection.commit()
+
             return True, ''
         except mysql.connector.Error as err:
             if err.errno == errorcode.ER_DUP_ENTRY:
-                return True, ''
-            else:
-                return False, str(err)
+                return True, ''     # ok if the question is already in database.
+            # for other errors, return as error message
+            return False, str(err)
+
+    @staticmethod
+    @retry_if_disconnected
+    def insert_question_tags(id_: str, tags: list) -> tuple:
+        """
+        This method insert tags of a certain problem id.
+
+        :param id_: problem id
+        :param tags: Tags of the problem, a list of str, cannot be None.
+
+        :return A tuple [bool, str], 1st position is True if successfully inserted, False if failed.
+        The 2nd position is error message if failed.
+        """
+        try:
+            for tag in tags:
+                sql_cmd = f'INSERT INTO {DataBase._database}.QuestionTags (id, tag) ' \
+                           'VALUES (%s, %s)'
+                DataBase.cursor.execute(sql_cmd, (id_, tag))
+                DataBase.connection.commit()
+            return True, ''
+        except mysql.connector.Error as err:
+            if err.errno == errorcode.ER_DUP_ENTRY:
+                return True, ''     # ok if the tag is already in database.
+            # for other errors, return as error message
+            return False, str(err)
 
     @staticmethod
     @retry_if_disconnected
@@ -115,10 +142,16 @@ class DataBase:
 
     @staticmethod
     @retry_if_disconnected
-    def insert_studyOn(id_: str, date: str = '') -> tuple:
+    def insert_study_on(id_: str, date: str = '') -> tuple:
         """
         This method insert a new record to the table StudyOn,
-        should give user message after return False(implement in LeetCode.py)
+        given the problem id and the date to study.
+
+        :param id_: problem id to insert
+        :param date: the date to study the problem
+
+        :return A tuple [bool, str], 1st position is True if successfully inserted, False if failed.
+        The 2nd position is error message if failed.
         """
         try:
             sql_cmd = f'INSERT INTO {DataBase._database}.StudyOn(date, id) VALUES (%s, %s)'
@@ -131,9 +164,8 @@ class DataBase:
             if err.errno == errorcode.ER_DUP_ENTRY:
                 return False, f'数据库中已存在id为：{id_}， 日期为{date}的刷题计划'
             elif err.errno == errorcode.ER_NO_REFERENCED_ROW_2:
-                return False, f'数据库中不存在id为：{id_}的题目'
-            else:
-                return False, str(err)
+                return False, f'数据库中不存在id为：{id_}的题目, 请联系管理员处理'
+            return False, str(err)
 
     @staticmethod
     @retry_if_disconnected
