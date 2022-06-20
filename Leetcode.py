@@ -219,36 +219,34 @@ class Leetcode:
             return to_return
 
         if query[2] == 'submit':
-            if len(query) > 3:
-                query[3] = ' '.join(query[3:])
-                query = query[:4]
             # user must have been registered before using this command
             status_, username_ = UserOperation.get_leetcode(str(user_qq))
             if not status_:
                 return '我还不知道您的LeetCode账户名哦，试试leet register <your leetcode username>'
 
             # pylint: disable=no-else-return
+            today_date = str(datetime.date.today())
             if len(query) == 3:
                 # submit all the questions today
                 to_return = "提交今日所有题目:\n"
                 today_questions = Leetcode.question_list
+                # no questions today:
+                if not today_questions:
+                    return "Ahh, 今天还没有题目哦 >.<"
                 for q in today_questions:
-                    curr_status = Leetcode.submit_question(str(datetime.date.today()), q['name'], username_)
-                    if curr_status[0]:
-                        to_return += f"{q['name']}: 您已成功提交!\n"
-                    else:
-                        to_return += curr_status[1] + "\n"
-                return to_return
+                    result = Leetcode.submit_question(today_date, q['name'], str(user_qq), username_)
+                    to_return += f"题目[{q['name']}]: {result}\n"
+                return to_return[:-1]       # remove \n
             else:
                 # submit a specific question
-                # check if the id is valid
-                question_name = query[3]  # question id received
+                # check if the name is valid
+                question_name = ' '.join(query[3:])     # question name received
                 if question_name not in [q['name'] for q in Leetcode.question_list]:
                     return f"[Error] 今天没有名为'{question_name}'的题目哦!"
 
                 # submit the question
-                result = Leetcode.submit_question(str(datetime.date.today()), question_name, username_)
-                return result[1]
+                result = Leetcode.submit_question(today_date, question_name, str(user_qq), username_)
+                return f"题目[{question_name}]: {result}"
 
         # register: match the qq account with leetcode username,
         # so user don't need to provide username when query
@@ -358,13 +356,16 @@ class Leetcode:
         return f'成功插入题目: {question_details["name"]}, 日期为: {date}'
 
     @staticmethod
-    def submit_question(question_date: str, question_name: str, username: str) -> tuple:
+    def submit_question(question_date: str, question_name: str, qq: str, username: str) -> str:
         """
         Perform a user's submission of given question on specific date. We assume the parameters are valid.
+
         :param question_date: date of the question
         :param question_name: name of the question
-        :param username: the username of leetcode account
-        :return: True if the user have finished the question, False otherwise
+        :param qq: the qq account of the user           TODO: can we only use one?
+        :param username: the leetcode username of the user
+
+        :return: Result message to display to users
         """
         # get the object of that question in question_list
         question_obj = None
@@ -373,23 +374,24 @@ class Leetcode:
                 question_obj = q
                 break
         if question_obj is None:
-            return False, f'question{question_name} do not exist, please insert leetcode question ' \
-                          f'first using leet insert'  # this should not happen, since we ensured valid parameters
+            return "[Internal Error] 无法找到题目"    # this should not happen, since we ensured valid parameters
 
-        # check if user has already submitted the question
+        # check if user has already submitted the question  TODO: retrieve from cache
         participants = DataBase.get_prob_participant(question_obj['id'], username=True)
         if username in participants:
-            return False, f'{username}已经提交过{question_name}'
+            return "您已提交过此题目"
 
         # check if user finished the question
         status = Leetcode.check_finish_problem(question_name, username)
-        if status:
-            user = DataBase.select_user(username)
-            if user[0] is False:
-                return False, '用户不存在'
-            result = DataBase.submit_problem(question_date, question_obj['id'], user[1])
-            return result
-        return False, f'{username}没有完成{question_name}'
+        if not status:
+            return "您没有完成此题目"
+
+        # update participant record in database
+        result = DataBase.submit_problem(question_date, question_obj['id'], qq)
+        if not result:
+            return "[Internal Error] 用户通过题目，但无法将通过信息同步到数据库"
+
+        return "成功提交此题目!"
 
     @staticmethod
     def update_question_list():

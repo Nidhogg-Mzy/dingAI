@@ -196,40 +196,40 @@ class DataBase:
         :param date The date of given problem
         :param problem_id The unique id of problem, not problem name
         :param qq The qq account of user
+
         :return True if database has the record that user finished given problem on given date
         """
         sql_cmd = f'SELECT participant FROM {DataBase._database}.ParticipateIn WHERE date = %s AND id = %s'
         val = (date, problem_id)
         DataBase.cursor.execute(sql_cmd, val)
         participant_object = DataBase.cursor.fetchall()
-        participant_list = []
-        for p in participant_object:
-            participant_list.append(p[0])
-        print(participant_list)
-        if qq in participant_list:
-            return True
-        return False
+
+        return qq in [p[0] for p in participant_object]
 
     @staticmethod
     @retry_if_disconnected
-    def submit_problem(date: str, problem_id: str, qq: str) -> tuple:
+    def submit_problem(date: str, problem_id: str, qq: str) -> bool:
         """
-        This function will be called when a user successfully submits the problem.
+        This function should be called when a user successfully submits the problem.
+        It will add user as a participant of the given problem in database.
+
+        Warning: If user has already been a participant, this function will return False.
 
         :param date The date of given problem
         :param problem_id The unique id of problem, not problem name
         :param qq The qq account of user
-        :return True,
+
+        :return True if successfully update database, False otherwise.
         """
         try:
             sql_cmd = f'INSERT INTO {DataBase._database}.ParticipateIn (date, id, participant) VALUES (%s, %s, %s)'
             val = (date, problem_id, qq)
             DataBase.cursor.execute(sql_cmd, val)
             DataBase.connection.commit()
-            return True, ''
+            return True
         except mysql.connector.Error:
             # other possible exception are already handled in leetcode.py
-            return False, '数据库发生未知错误，请联系管理员处理'
+            return False
 
     @staticmethod
     @retry_if_disconnected
@@ -254,7 +254,6 @@ class DataBase:
             result = DataBase.cursor.fetchall()
         toReturn = [r[0] for r in result]
         return toReturn
-
 
     @staticmethod
     @retry_if_disconnected
@@ -281,16 +280,6 @@ class DataBase:
         users = DataBase.cursor.fetchall()
 
         return {user[0]: user[1] for user in users}
-
-    @staticmethod
-    @retry_if_disconnected
-    def select_user(username: str) -> tuple:
-        sql_cmd = f'SELECT QQAccount FROM {DataBase._database}.Users WHERE username = %s'
-        DataBase.cursor.execute(sql_cmd, (username, ))
-        QQAcount = DataBase.cursor.fetchall()
-        if not QQAcount:
-            return False, ''
-        return True, QQAcount[0][0]
 
     @staticmethod
     @retry_if_disconnected
