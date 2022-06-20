@@ -201,9 +201,9 @@ class Leetcode:
             return to_return
 
         if query[2] == 'submit':
-            if not 3 <= len(query) <= 5:
-                return "[Error] Invalid syntax. Use \"leet help\" to check usage."
-
+            if len(query) > 3:
+                query[3] = ' '.join(query[3:])
+                query = query[:4]
             # user must have been registered before using this command
             status_, username_ = UserOperation.get_leetcode(str(user_qq))
             if not status_:
@@ -219,7 +219,7 @@ class Leetcode:
                     if curr_status[0]:
                         to_return += f"{q['name']}: 您已成功提交!\n"
                     else:
-                        to_return += f"{q['name']}: 您好像还没有完成这道题.\n"
+                        to_return += curr_status[1] + "\n"
                 return to_return
             else:
                 # submit a specific question
@@ -266,6 +266,8 @@ class Leetcode:
                 return f'[Error] 找不到id为"{question_id}"的题目. 如果你认为这是一个错误，请联系管理员.'
             result1 = DataBase.insert_leetcode(question_id, question_details['name'], question_details['link'],
                                                question_details['difficulty'], query[5:])
+            if not result1[0]:
+                return result1[1]
             result2 = DataBase.insert_studyOn(question_id, date_received)
             if result1[0] and result2[0]:
                 Leetcode.question_list = DataBase.get_question_on_date()
@@ -290,7 +292,7 @@ class Leetcode:
             result = DataBase.delete_leetcode(question_id, date_received)
             if result[0]:
                 Leetcode.question_list = DataBase.get_question_on_date()
-                return f'成功删除题目: {question_id}, 日期为: {date_received}'
+                return result[1]
             else:
                 return result[1]
 
@@ -330,9 +332,9 @@ class Leetcode:
                           f'first using leet insert'  # this should not happen, since we ensured valid parameters
 
         # check if user has already submitted the question
-        participants = DataBase.get_prob_participant(question_obj['id'])
+        participants = DataBase.get_prob_participant(question_obj['id'], username=True)
         if username in participants:
-            return True, f'{username}已经提交过{question_name}'
+            return False, f'{username}已经提交过{question_name}'
 
         # check if user finished the question
         status = Leetcode.check_finish_problem(question_name, username)
@@ -341,7 +343,6 @@ class Leetcode:
             if user[0] is False:
                 return False, '用户不存在'
             result = DataBase.submit_problem(question_date, question_obj['id'], user[1])
-            print(result)
             return result
         return False, f'{username}没有完成{question_name}'
 
@@ -358,7 +359,7 @@ class Leetcode:
             # check if it is midnight
             if curr_time.hour == 0 and curr_time.minute == 0:
                 Leetcode.question_list = DataBase.get_question_on_date(curr_time.strftime('%Y-%m-%d'))
-                sleep(300)  # allow some buffer time.
+                sleep(20)  # allow some buffer time.
 
 
 if __name__ == '__main__':
