@@ -382,7 +382,7 @@ class Leetcode:
             return "[Internal Error] 无法找到题目"    # this should not happen, since we ensured valid parameters
 
         # check if user has already submitted the question
-        participants = [q['participants'] for q in Leetcode.question_list]
+        participants = question_obj['participants']
         if username in participants:
             return "您已提交过此题目"
 
