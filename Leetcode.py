@@ -394,19 +394,18 @@ class Leetcode:
         return "成功提交此题目!"
 
     @staticmethod
-    def update_question_list():
+    def update_question_list() -> None:
         """
-        Update the question list every 5 min.
-        :return: None
+        Update the question list at midnight.
         """
-        # get the question list from leetcode
         while True:
             # get current time in UTC+8
             curr_time = datetime.datetime.utcnow() + datetime.timedelta(hours=8)
             # check if it is midnight
             if curr_time.hour == 0 and curr_time.minute == 0:
                 Leetcode.question_list = DataBase.get_question_on_date(curr_time.strftime('%Y-%m-%d'))
-                sleep(20)  # allow some buffer time.
+                sleep(60 * 60 * 23 + 60 * 30)     # sleep 23h 30min
+            sleep(20)  # allow some buffer time.
 
 
 if __name__ == '__main__':
