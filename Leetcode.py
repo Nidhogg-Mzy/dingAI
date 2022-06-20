@@ -10,11 +10,8 @@ from database import DataBase
 class Leetcode:
     """
     Serve as Leetcode API.
-    This file should keep a list that records all the
-    """
 
-    """
-    Store today's question in question_list as a list, and each question in form:
+    As cache, we store today's question in question_list as a list, and each question in form:
     {
             "id": "longest-turbulent-subarray",
             "name": "978. 最长湍流子数组",

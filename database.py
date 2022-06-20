@@ -170,7 +170,7 @@ class DataBase:
         except mysql.connector.Error as err:
             if err.errno == errorcode.ER_DUP_ENTRY:
                 return False, f'数据库中已存在id为：{id_}， 日期为{date}的刷题计划'
-            elif err.errno == errorcode.ER_NO_REFERENCED_ROW_2:
+            if err.errno == errorcode.ER_NO_REFERENCED_ROW_2:
                 return False, f'数据库中不存在id为：{id_}的题目, 请联系管理员处理'
             return False, str(err)
 
