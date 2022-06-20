@@ -85,17 +85,14 @@ class DataBase:
         try:
             sql_cmd = f'INSERT INTO {DataBase._database}.LeetCode (id, name, link, difficulty) ' \
                       'VALUES (%s, %s, %s, %s)'
-            print(id_ + '\n' + name + '\n' + link + '\n' + difficulty)
             DataBase.cursor.execute(sql_cmd, (id_, name, link, difficulty))
             DataBase.connection.commit()
-            print("Inserted leetcode question:", id_, name, link, difficulty)
             if tags is not None:
                 for tag in tags:
                     sql_cmd = f'INSERT INTO {DataBase._database}.QuestionTags (id, tag) ' \
                               'VALUES (%s, %s)'
                     DataBase.cursor.execute(sql_cmd, (id_, tag))
                     DataBase.connection.commit()
-                    print("Inserted question tag:", id_, tag)
             return True, ''
         except mysql.connector.Error as err:
             if err.errno == errorcode.ER_DUP_ENTRY:
@@ -112,7 +109,7 @@ class DataBase:
             sql_cmd = f'DELETE FROM {DataBase._database}.StudyOn WHERE id = %s and date = %s'
             DataBase.cursor.execute(sql_cmd, (id_, date))
             DataBase.connection.commit()
-            return True, 'successfully deleted'
+            return True, f'成功删除题目: {id_}, 日期为: {date}'
         except mysql.connector.Error as err:
             return False, str(err)
 
@@ -197,7 +194,7 @@ class DataBase:
             val = (date, problem_id, qq)
             DataBase.cursor.execute(sql_cmd, val)
             DataBase.connection.commit()
-            return True, 'successfully submitted'
+            return True, ''
         except mysql.connector.Error:
             # other possible exception are already handled in leetcode.py
             return False, '数据库发生未知错误，请联系管理员处理'
