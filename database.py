@@ -129,14 +129,21 @@ class DataBase:
 
     @staticmethod
     @retry_if_disconnected
-    def delete_leetcode(id_: str, date: str = '') -> tuple:
-        if date == '':
-            date = datetime.datetime.now().strftime("%Y-%m-%d")
+    def delete_leetcode(id_: str, date: str) -> tuple:
+        """
+        Delete study plan in database, given problem id and date
+
+        :param id_: problem id to delete
+        :param date: on which date to delete
+
+        :return A tuple [bool, str], 1st position is True if successfully deleted, False if failed.
+        The 2nd position is error message if failed.
+        """
         try:
             sql_cmd = f'DELETE FROM {DataBase._database}.StudyOn WHERE id = %s and date = %s'
             DataBase.cursor.execute(sql_cmd, (id_, date))
             DataBase.connection.commit()
-            return True, f'成功删除题目: {id_}, 日期为: {date}'
+            return True, ''
         except mysql.connector.Error as err:
             return False, str(err)
 
@@ -171,20 +178,24 @@ class DataBase:
     @retry_if_disconnected
     def get_question_on_date(date: str = '') -> list:
         """
-        This method get all the question on a specific date
+        This method get all the question on a specific date. If date is not provided,
+        return questions today.
 
+        :param date: return questions on which date. If not provided, return questions today
+
+        :return A list of questions on certain date.
         """
         if date == '':
-            date = datetime.datetime.now().strftime("%Y-%m-%d")
+            date = datetime.datetime.today()
         sql_cmd = f'SELECT * FROM {DataBase._database}.LeetCode l, {DataBase._database}.StudyOn s WHERE s.date = %s ' \
                   f'AND l.id = s.id'
         DataBase.cursor.execute(sql_cmd, (date,))
         questions = DataBase.cursor.fetchall()
-        toReturn = []
+        to_return = []
         for q in questions:
             question = {'id': q[0], 'name': q[1], 'link': q[2], 'difficulty': q[3]}
-            toReturn.append(question)
-        return toReturn
+            to_return.append(question)
+        return to_return
 
     @staticmethod
     @retry_if_disconnected

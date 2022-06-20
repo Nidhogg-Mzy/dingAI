@@ -287,19 +287,24 @@ class Leetcode:
             question_id = query[4]
 
             # check if date is valid
-            if not re.search(r"^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$", date_received):
+            if not Leetcode.check_valid_date(date_received):
                 return '[Error] 日期格式不合法, 请输入YYYY-MM-DD格式的日期.'
+
             # check if the question exists
-            if question_id not in [q['id'] for q in Leetcode.question_list]:
-                return f'[Error] 日期为"{date_received}"的题目中没有id为"{question_id}"的题目.'
+            questions_on_that_date = [q['id'] for q in DataBase.get_question_on_date(date_received)]
+            if question_id not in questions_on_that_date:
+                return f'[Error] 日期 {date_received} 没有id为"{question_id}"的题目.'
 
             # delete the question
             result = DataBase.delete_leetcode(question_id, date_received)
-            if result[0]:
+            if not result[0]:
+                return result[1]
+
+            # on success, update cache if deleted today, don't think this can fail
+            if date_received == str(datetime.date.today()):
                 Leetcode.question_list = DataBase.get_question_on_date()
-                return result[1]
-            else:
-                return result[1]
+
+            return f'成功在 {date_received} 删除题目[{question_id}].'
 
         if query[2] == 'help':
             return 'Leetcode 相关指令: \n' \
@@ -352,6 +357,10 @@ class Leetcode:
         result3 = DataBase.insert_study_on(question_id, date)
         if not result3[0]:
             return result3[1]       # return error message if failure
+
+        # update cache if insert problem today, I don't think it can fail
+        if date == str(datetime.date.today()):
+            Leetcode.question_list = DataBase.get_question_on_date()
 
         return f'成功插入题目: {question_details["name"]}, 日期为: {date}'
 
