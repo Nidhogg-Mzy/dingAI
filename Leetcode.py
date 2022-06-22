@@ -356,6 +356,8 @@ class Leetcode:
         # insert question tags
         # if tag is already in database, don't add
         result = DataBase.get_question_tags(question_id)
+        if not result[0]:
+            return result[1]
         curr_tags = result[1]
         curr_tags_lower = list((map(lambda x: x.lower(), curr_tags)))
         tags_to_insert = []
