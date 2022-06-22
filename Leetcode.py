@@ -144,11 +144,15 @@ class Leetcode:
         """
         output = ""
         for question in question_list:
+            tags = DataBase.get_question_tags(question['id'])
+            if not tags[0]:
+                return '无法从数据库获取信息'
             output += (
                 f"{'=' * 10}\n"
                 f"题目名称: {question['name']}\n"
                 f"题目链接: {question['link']}\n"
                 f"题目难度: {question['difficulty']}\n"
+                f"题目标签: {tags[1]}\n"
                 f"已完成名单: {question['participants']}\n")
         return output
 
@@ -232,11 +236,11 @@ class Leetcode:
                 for q in today_questions:
                     result = Leetcode.submit_question(today_date, q['name'], str(user_qq), username_)
                     to_return += f"题目[{q['name']}]: {result}\n"
-                return to_return[:-1]       # remove \n
+                return to_return[:-1]  # remove \n
             else:
                 # submit a specific question
                 # check if the name is valid
-                question_name = ' '.join(query[3:])     # question name received
+                question_name = ' '.join(query[3:])  # question name received
                 if question_name not in [q['name'] for q in Leetcode.question_list]:
                     return f"[Error] 今天没有名为'{question_name}'的题目哦!"
 
@@ -342,23 +346,33 @@ class Leetcode:
         result1 = DataBase.insert_leetcode(question_id, question_details['name'], question_details['link'],
                                            question_details['difficulty'])
         if not result1[0]:
-            return result1[1]       # return error message if failure
-
-        # insert question tags
-        result2 = DataBase.insert_question_tags(question_id, tags)
-        if not result2[0]:
-            return result2[1]       # return error message if failure
+            return result1[1]  # return error message if failure
 
         # insert study plan
-        result3 = DataBase.insert_study_on(question_id, date)
+        result2 = DataBase.insert_study_on(question_id, date)
+        if not result2[0]:
+            return result2[1]  # return error message if failure
+
+        # insert question tags
+        # if tag is already in database, don't add
+        result = DataBase.get_question_tags(question_id)
+        curr_tags = result[1]
+        curr_tags_lower = list((map(lambda x: x.lower(), curr_tags)))
+        tags_to_insert = []
+        for tag in tags:
+            t = tag.lower()
+            if t not in curr_tags_lower:
+                tags_to_insert.append(tag)
+                curr_tags.append(tag)
+                curr_tags_lower.append(t)
+        result3 = DataBase.insert_question_tags(question_id, tags_to_insert)
         if not result3[0]:
-            return result3[1]       # return error message if failure
+            return result3[1]  # return error message if failure
 
         # update cache if insert problem today, I don't think it can fail
         if date == str(datetime.date.today()):
             Leetcode.question_list = DataBase.get_question_on_date()
-
-        return f'成功插入题目: {question_details["name"]}, 日期为: {date}'
+        return f'成功插入题目: {question_details["name"]}, 日期为: {date}, 题目的当前tag为: {curr_tags}'
 
     @staticmethod
     def submit_question(question_date: str, question_name: str, qq: str, username: str) -> str:
@@ -379,7 +393,7 @@ class Leetcode:
                 question_obj = q
                 break
         if question_obj is None:
-            return "[Internal Error] 无法找到题目"    # this should not happen, since we ensured valid parameters
+            return "[Internal Error] 无法找到题目"  # this should not happen, since we ensured valid parameters
 
         # check if user has already submitted the question
         participants = question_obj['participants']
@@ -411,7 +425,7 @@ class Leetcode:
             # check if it is midnight
             if curr_time.hour == 0 and curr_time.minute == 0:
                 Leetcode.question_list = DataBase.get_question_on_date(curr_time.strftime('%Y-%m-%d'))
-                sleep(60 * 60 * 23 + 60 * 30)     # sleep 23h 30min
+                sleep(60 * 60 * 23 + 60 * 30)  # sleep 23h 30min
             sleep(20)  # allow some buffer time.
 
 
