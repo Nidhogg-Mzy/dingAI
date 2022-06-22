@@ -129,6 +129,18 @@ class DataBase:
 
     @staticmethod
     @retry_if_disconnected
+    def get_question_tags(id_: str) -> tuple:
+        try:
+            sql_cmd = f'SELECT tag from {DataBase._database}.QuestionTags WHERE id = %s'
+            DataBase.cursor.execute(sql_cmd, (id_,))
+            result = DataBase.cursor.fetchall()
+            tags = [r[0] for r in result]
+            return True, tags
+        except mysql.connector.Error as err:
+            return False, str(err)
+
+    @staticmethod
+    @retry_if_disconnected
     def delete_leetcode(id_: str, date: str) -> tuple:
         """
         Delete study plan in database, given problem id and date
