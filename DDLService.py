@@ -22,15 +22,10 @@ import re
 
 class DDLService:
     filename = "ddl.json"
-    ddl_list = []
 
-    @staticmethod
-    def load_ddl_from_file():
-        """
-        Load ddl list from file, store the result in self.ddl_list
-        """
-        with open(DDLService.filename, "r") as f:
-            DDLService.ddl_list = json.load(f)  # A list of dict
+    # Load ddl list from file, store the result in self.ddl_list
+    with open(filename, "r") as f:
+        ddl_list = json.load(f)  # A list of dict
 
     @staticmethod
     def get_ddl(predicate: lambda ddl: bool) -> list:
