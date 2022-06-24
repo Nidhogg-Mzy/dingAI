@@ -38,6 +38,8 @@ def send_msg(resp_dict):
     elif msg_type == 'private':
         payload = "GET /send_private_msg?user_id=" + str(
             number) + "&message=" + msg + " HTTP/1.1\r\nHost:" + ip + ":5700\r\nConnection: close\r\n\r\n"
+    elif msg_type == 'group_notice':
+        payload = "POST /_send_group_notice?group_id=" + str(number) + "&content=" + msg + " HTTP/1.1\r\nHost:" + ip + ":5700\r\nConnection: close\r\n\r\n"
     else:
         payload = ''
     print("发送" + payload)
@@ -82,6 +84,22 @@ def check_scheduled_task():
 
         time.sleep(20)  # allow some buffer time.
 
+
+def daily_update():
+    """
+    Update the question_list in leetcode
+    Send a group notice at midnight contains the message of today's question
+    """
+    group = 950540652
+    while True:
+        # get current time in UTC+8
+        curr_time = datetime.datetime.utcnow() + datetime.timedelta(hours=8)
+        # check if it is midnight
+        if curr_time.hour == 0 and curr_time.minute == 0:
+            Leetcode.question_list = DataBase.get_question_on_date(curr_time.strftime('%Y-%m-%d'))
+            send_msg({'msg_type': 'group_notice', 'number': group, 'msg': Leetcode.display_questions(Leetcode.question_list)})
+            time.sleep(60 * 60 * 23 + 60 * 30)  # sleep 23h 30min
+        time.sleep(20)  # allow some buffer time.
 
 def get_data(text):
     # 请求思知机器人API所需要的一些信息
@@ -220,6 +238,8 @@ if __name__ == '__main__':
     trd_msg_reply = Thread(target=message_process_tasks)
     trd_msg_reply.start()
 
-    # add a thread to update the question_list in Leetcode daily
-    trd_update_question_list = Thread(target=Leetcode.update_question_list())
-    trd_update_question_list.start()
+    # add a thread to update the question list and send a group notice every midnight
+    trd_daily_update = Thread(target=daily_update)
+    trd_daily_update.start()
+
+
