@@ -37,7 +37,7 @@ def retry_if_disconnected(func):
 class DataBase:
     connection, cursor = None, None
     _database = None
-    _config_file = "dbUserName.json"
+    _config_file = "config.json"
 
     @staticmethod
     def set_config_file(filename: str) -> None:
@@ -55,7 +55,7 @@ class DataBase:
         :return True if connection is successfully established, False otherwise.
         """
         with open(DataBase._config_file, "r", encoding='utf-8') as f:
-            temp = json.load(f)
+            temp = json.load(f)["database"]
             host, database, user, password = \
                 temp["ip"], temp["database"], temp["username"], temp["password"]
             DataBase._database = database
