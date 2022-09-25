@@ -198,6 +198,9 @@ class Receive:
                 Receive.send_msg(
                     {'msg_type': 'group', 'number': group,
                      'msg': Receive.reply_msg[random.randint(0, len(Receive.reply_msg) - 1)]})
+            elif message_parts[1] in ['wait', 'waitlist', 'Wait']:
+                Receive.send_msg({'msg_type': 'group', 'number': group,
+                                  'msg': f"[CQ:at,qq={qq}]\n" + get_waitlist(str(qq))})
             # leetcode feature
             elif message_parts[1] == 'leet':
                 Receive.send_msg({'msg_type': 'group', 'number': group,
@@ -242,6 +245,34 @@ class Receive:
                 Receive.send_msg({'msg_type': 'private', 'number': '3429582673', 'msg': error_msg})
                 # also record in log
                 print(f'##### Error\n{error_msg}')
+
+# TODO: make all about hkust into a new module.
+# TODO: I, personally, don't want this to be released to public.
+def get_waitlist(qq: str) -> str:
+    url = "https://w5.ab.ust.hk/msapi/sis/stdt_class_enrl/%7BstdtID%7D"
+    payload = {}
+
+    def get_header(qq: str) -> dict:
+        with open("test.config", "r") as f:
+            all_configs = json.load(f)["hkust_oauth_token"]
+        return {
+            'Authorization': f'Bearer {all_configs[qq]}',
+            'Cookie': 'language=en-US'
+        }
+
+    headers = get_header(qq)
+    print(headers)
+
+    response = requests.request("GET", url, headers=headers, data=payload)
+
+    json_response = json.loads(response.text)
+    stdInfo = json_response['stdtInfo'][0]
+    waitList = stdInfo['studentClassWaitlist']
+    info = ''
+    for c in waitList:
+        info += f'course code: {c["crseCode"]}, waitlist position: {c["waitPosition"]}\n'
+
+    return info
 
 
 if __name__ == '__main__':
