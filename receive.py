@@ -35,15 +35,12 @@ class Receive:
         msg = msg.replace(" ", "%20")
         msg = msg.replace("\n", "%0a")
 
-        if msg_type == 'group':
-            payload = "GET /send_group_msg?group_id=" + str(
-                number) + "&message=" + msg + " HTTP/1.1\r\nHost:" + ip + ":5700\r\nConnection: close\r\n\r\n"
-        elif msg_type == 'private':
-            payload = "GET /send_private_msg?user_id=" + str(
-                number) + "&message=" + msg + " HTTP/1.1\r\nHost:" + ip + ":5700\r\nConnection: close\r\n\r\n"
-        elif msg_type == 'group_notice':
-            payload = "POST /_send_group_notice?group_id=" + str(
-                number) + "&content=" + msg + " HTTP/1.1\r\nHost:" + ip + ":5700\r\nConnection: close\r\n\r\n"
+        api_endpoints = {'group': 'GET /send_group_msg?group_id=',
+                         'private': 'GET /send_private_msg?user_id=',
+                         'group_notice': 'POST /_send_group_notice?group_id='}
+        if msg_type in api_endpoints.keys():
+            payload = f'{api_endpoints[msg_type]}{number}&message=' \
+                      f'{msg} HTTP/1.1\r\nHost:{ip}:5700\r\nConnection: close\r\n\r\n'
         else:
             payload = ''
         print("Send: " + payload)
@@ -82,6 +79,7 @@ class Receive:
     def check_scheduled_task():
         """
         This function stores scheduled tasks.
+        TODO: re-write this using some scheduler package
         """
         while True:
             # get current time in UTC+8
@@ -101,6 +99,7 @@ class Receive:
         """
         Update the question_list in leetcode
         Send a group notice at midnight contains the message of today's question
+        TODO: re-write this using some scheduler package
         """
         while True:
             # get current time in UTC+8
@@ -109,7 +108,7 @@ class Receive:
             if curr_time.hour == 0 and curr_time.minute == 0:
                 Leetcode.question_list = DataBase.get_question_on_date(curr_time.strftime('%Y-%m-%d'))
                 Receive.send_msg({'msg_type': 'group_notice', 'number': Receive.GROUP_ACCOUNT,
-                          'msg': Leetcode.display_questions(Leetcode.question_list)})
+                                  'msg': Leetcode.display_questions(Leetcode.question_list)})
                 time.sleep(60 * 60 * 23 + 60 * 30)  # sleep 23h 30min
             time.sleep(20)  # allow some buffer time.
 
@@ -197,21 +196,23 @@ class Receive:
             message_parts = rev['raw_message'].strip().split(' ')
             if message_parts[1] == '在吗':
                 Receive.send_msg(
-                    {'msg_type': 'group', 'number': group, 'msg': Receive.reply_msg[random.randint(0, len(Receive.reply_msg) - 1)]})
-                # send_msg({'msg_type': 'group', 'number': group, 'msg': '[CQ:poke,qq={}]'.format(qq)})
+                    {'msg_type': 'group', 'number': group,
+                     'msg': Receive.reply_msg[random.randint(0, len(Receive.reply_msg) - 1)]})
             # leetcode feature
             elif message_parts[1] == 'leet':
                 Receive.send_msg({'msg_type': 'group', 'number': group,
-                          'msg': f"[CQ:at,qq={qq}]\n" + Leetcode.process_query(message_parts, qq)})
+                                  'msg': f"[CQ:at,qq={qq}]\n" + Leetcode.process_query(message_parts, qq)})
             # DDL feature
             elif message_parts[1] == 'ddl':
                 Receive.send_msg({'msg_type': 'group', 'number': group,
-                          'msg': f"[CQ:at,qq={qq}]\n" + DDLService.process_query(message_parts[1:], qq)})
+                                  'msg': f"[CQ:at,qq={qq}]\n" + DDLService.process_query(message_parts[1:], qq)})
+            # TODO: add help reply
             else:
                 content = ""
                 for i in range(1, len(message_parts)):
                     content += message_parts[i] + " "
-                Receive.send_msg({'msg_type': 'group', 'number': group, 'msg': f'[CQ:at,qq={qq}]' + Receive.get_answer(content)})
+                Receive.send_msg({'msg_type': 'group', 'number': group,
+                                  'msg': f'[CQ:at,qq={qq}]' + Receive.get_answer(content)})
 
     @staticmethod
     def message_process_tasks():
@@ -222,19 +223,21 @@ class Receive:
             received = Receive.rev_msg()
             try:
                 if received["post_type"] == "message":
-                    # PRIVATE MESSAGE
+                    # private message
                     if received["message_type"] == "private":
                         Receive.rev_private_msg(received)
-                    # GROUP MESSAGE
+                    # group message
                     elif received["message_type"] == "group":
                         Receive.rev_group_msg(received)
+            # TODO: consider enlarge type of Error?
             except TypeError as e:
                 # This error will be reported to developers via qq private message.
                 error_msg = '[Internal Error] TypeError while trying to reply message. ' \
                             'If the message received is too long, try to' + \
-                            'release the length restriction. (currently 8192)\n' + \
+                            'release the length restriction. (currently 4096)\n' + \
                             f'[Exception Message] {e}\n ' \
                             f'Message received: {received}'
+                # TODO: specify admin account in config file
                 Receive.send_msg({'msg_type': 'private', 'number': '2220038250', 'msg': error_msg})
                 Receive.send_msg({'msg_type': 'private', 'number': '3429582673', 'msg': error_msg})
                 # also record in log
