@@ -27,11 +27,11 @@ class Receive:
         ip = '127.0.0.1'
         client.connect((ip, 5700))
 
-        msg_type = resp_dict['msg_type']  # 回复类型（群聊/私聊）
-        number = resp_dict['number']  # 回复账号（群号/好友号）
-        msg = resp_dict['msg']  # 要回复的消息
+        msg_type = resp_dict['msg_type']  # message type: group or private
+        number = resp_dict['number']  # reply to whom (person id or group id)
+        msg = resp_dict['msg']  # message to reply
 
-        # 将字符中的特殊字符进行url编码
+        # encode special characters
         msg = msg.replace(" ", "%20")
         msg = msg.replace("\n", "%0a")
 
@@ -46,7 +46,7 @@ class Receive:
                 number) + "&content=" + msg + " HTTP/1.1\r\nHost:" + ip + ":5700\r\nConnection: close\r\n\r\n"
         else:
             payload = ''
-        print("发送" + payload)
+        print("Send: " + payload)
         client.send(payload.encode("utf-8"))
         client.close()
         return 0
@@ -115,7 +115,8 @@ class Receive:
 
     @staticmethod
     def get_data(text):
-        # 请求思知机器人API所需要的一些信息
+        # info to request api
+        # TODO: specify this in config file
         data = {
             "appid": "a612dbe7965b53eeb5eaf26edccc8c94",
             "userid": "sKJAeMs3",
@@ -125,7 +126,7 @@ class Receive:
 
     @staticmethod
     def get_answer(text):
-        # 获取思知机器人的回复信息
+        # get reply for bot api
         data = Receive.get_data(text)
         url = 'https://api.ownthink.com/bot'  # API接口
         response = requests.post(url=url, data=data)
