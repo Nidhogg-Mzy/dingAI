@@ -1,4 +1,3 @@
 __pycache__/
 .idea/
-dbUserName.json
-Accounts.json
+config.json
