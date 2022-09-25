@@ -3,6 +3,7 @@ import random
 import socket
 import time
 import datetime
+import argparse
 from threading import Thread
 import requests
 from Leetcode import Leetcode
@@ -14,11 +15,10 @@ class Receive:
     ListenSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     ListenSocket.bind(('127.0.0.1', 5701))
     ListenSocket.listen(100)
-    filename = 'Accounts.json'
-
+    filename = 'config.json'
 
     # const variable should be UPPER_CASE style
-    OFFICIAL_BOT_ACCOUNT, OFFICIAL_GROUP_ACCOUNT, TESTING_BOT_ACCOUNT, TESTING_GROUP_ACCOUNT = 0, 0, 0, 0# st_bot: 2585899559  # bot: 3292297816
+    BOT_ACCOUNT, GROUP_ACCOUNT = 0, 0
 
     @staticmethod
     def send_msg(resp_dict):
@@ -52,10 +52,12 @@ class Receive:
         return 0
 
     @staticmethod
-    def read_account_info():
+    def read_account_info(debug: bool):
         with open(Receive.filename, "r", encoding='utf-8') as f:
-            accounts = json.load(f)
-            Receive.OFFICIAL_BOT_ACCOUNT, Receive.OFFICIAL_GROUP_ACCOUNT, Receive.TESTING_BOT_ACCOUNT, Receive.TESTING_GROUP_ACCOUNT = accounts['official_bot'], accounts['official_group'], accounts['testing_bot'], accounts['testing_group'],
+            accounts = json.load(f)["accounts"]
+            # use testing account and group if debug is True
+            Receive.BOT_ACCOUNT = accounts['testing_bot'] if debug else accounts['official_bot']
+            Receive.GROUP_ACCOUNT = accounts['testing_group'] if debug else accounts['testing_bot']
 
     @staticmethod
     def request_to_json(msg):
@@ -106,7 +108,7 @@ class Receive:
             # check if it is midnight
             if curr_time.hour == 0 and curr_time.minute == 0:
                 Leetcode.question_list = DataBase.get_question_on_date(curr_time.strftime('%Y-%m-%d'))
-                Receive.send_msg({'msg_type': 'group_notice', 'number': Receive.OFFICIAL_GROUP_ACCOUNT,
+                Receive.send_msg({'msg_type': 'group_notice', 'number': Receive.GROUP_ACCOUNT,
                           'msg': Leetcode.display_questions(Leetcode.question_list)})
                 time.sleep(60 * 60 * 23 + 60 * 30)  # sleep 23h 30min
             time.sleep(20)  # allow some buffer time.
@@ -189,7 +191,7 @@ class Receive:
     @staticmethod
     def rev_group_msg(rev):
         group = rev['group_id']
-        if f'[CQ:at,qq={Receive.OFFICIAL_BOT_ACCOUNT}]' in rev["raw_message"]:
+        if f'[CQ:at,qq={Receive.BOT_ACCOUNT}]' in rev["raw_message"]:
             qq = rev['sender']['user_id']
             message_parts = rev['raw_message'].strip().split(' ')
             if message_parts[1] == '在吗':
@@ -237,9 +239,15 @@ class Receive:
                 # also record in log
                 print(f'##### Error\n{error_msg}')
 
+
 if __name__ == '__main__':
-    #initiate all the accounts
-    Receive.read_account_info()
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--debug', action='store_true', help='Add this flag if in debug mode,'
+                                                             'the program will use testing accounts')
+    args = parser.parse_args()
+
+    # initiate all the accounts
+    Receive.read_account_info(debug=args.debug)
     # add a thread to check scheduled tasks
     DataBase.init_database()
     print("database initialized")
