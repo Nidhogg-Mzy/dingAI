@@ -152,6 +152,7 @@ class Receive:
         elif rev['raw_message'] == '你在哪':
             qq = rev['sender']['user_id']
             Receive.send_msg({'msg_type': 'private', 'number': qq, 'msg': '我无处不在'})
+        # TODO: check if there will be index-out-of-bound issue
         elif rev['raw_message'].split(' ')[0] == '歌词':
             qq = rev['sender']['user_id']
             if len(rev['raw_message'].split(' ')) < 2:
@@ -194,6 +195,9 @@ class Receive:
         if f'[CQ:at,qq={Receive.BOT_ACCOUNT}]' in rev["raw_message"]:
             qq = rev['sender']['user_id']
             message_parts = rev['raw_message'].strip().split(' ')
+            if len(message_parts) < 2:
+                Receive.send_msg({'msg_type': 'group', 'number': group, 'msg': '蛤?'})
+                return
             if message_parts[1] == '在吗':
                 Receive.send_msg(
                     {'msg_type': 'group', 'number': group,
