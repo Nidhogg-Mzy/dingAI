@@ -1,0 +1,14 @@
+{
+  "accounts": {
+      "official_bot": 12345678,
+      "official_group": 12345678,
+      "testing_bot": 12345678,
+      "testing_group": 12345678
+  },
+  "database": {
+      "username": "foo",
+      "password": "bar",
+      "ip": "127.0.0.1",
+      "database": "bot"
+  }
+}

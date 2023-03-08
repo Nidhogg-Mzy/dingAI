@@ -1,29 +1,18 @@
-from os import path
-import json
+from database import DataBase
+
 
 class UserOperation:
-    def __init__(self):
-        self.user_list = {}     # format: {qq_account: leetcode_username}
-        self.data_file = "user.json"
-        # read user_list from data file
-        if not path.isfile(self.data_file):
-            raise FileNotFoundError("User data file not found, check if user.json exists.")
+    user_list = DataBase.get_user() # format: {qq_account: leetcode_username}
 
-        with open(self.data_file, 'r') as f:
-            raw_user_list = json.load(f)    # this reads a list of dict
+    @staticmethod
+    def update_user_list() -> None:
+        """
+        This function read latest user list from database and store in UserOperation.user_list
+        """
+        UserOperation.user_list = DataBase.get_user()
 
-        for qq in raw_user_list:
-            self.user_list[qq] = raw_user_list[qq]
-
-    def update_data(self):
-        # Check if data file exists
-        if not path.isfile(self.data_file):
-            raise FileNotFoundError("User data file not found, check if user.json exists.")
-        # write stored data to file
-        with open(self.data_file, 'w') as json_file:
-            json.dump(self.user_list, json_file, indent=4, separators=(',', ': '))
-
-    def register(self, qq: str, leetcode: str) -> tuple:
+    @staticmethod
+    def register(qq: str, leetcode: str) -> tuple:
         """
         Given qq account and leetcode username, register a new user. This function won't raise any exception.
         :param qq: qq account
@@ -32,62 +21,70 @@ class UserOperation:
                  Second item is a string, if successful, it indicates the result message, e.g., "Successfully registered.",
                  otherwise, it stores the error message
         """
-        if qq in self.user_list.keys():
-            old_leetcode = self.user_list[qq]
-            self.user_list[qq] = leetcode
-            try:
-                self.update_data()
-            except FileNotFoundError:
-                return False, "Failed to register. User data file not found, check if user.json exists."
-            else:
-                return True, f"Successfully update your leetcode username from {old_leetcode} to {leetcode}."
-        else:
-            self.user_list[qq] = leetcode
-            try:
-                self.update_data()
-            except FileNotFoundError:
-                return False, "Failed to register. User data file not found, check if user.json exists."
-            else:
-                return True, f"Successfully set your leetcode username to {leetcode}."
+        # pylint: disable=no-else-return
+        if qq in UserOperation.user_list:
+            old_leetcode = UserOperation.user_list[qq]
+            DataBase.update_user(qq, leetcode)
+            UserOperation.update_user_list()
 
-    def get_leetcode(self, qq: str) -> tuple:
+            # check if the update is really successful TODO: do we really need this?
+            new_leetcode = UserOperation.user_list[qq]
+            if new_leetcode == leetcode:
+                return True, f"Successfully update your leetcode username from {old_leetcode} to {leetcode}."
+            return False, "Ahh, something wrong during register, please try again"
+        else:
+            DataBase.insert_user(qq, leetcode)
+            UserOperation.update_user_list()
+
+            new_leetcode = UserOperation.user_list[qq]
+            if new_leetcode == leetcode:
+                return True, f"Successfully set your leetcode username to {leetcode}."
+            return False, "Ahh, something wrong during register, please try again"
+
+    @staticmethod
+    def get_leetcode(qq: str) -> tuple:
         """
         Given qq account, return the user's leetcode username.
+
         :param qq: qq account
         :return: A tuple, first item is a boolean, indicating the operation is successful or not,
         currently the operation will fail only if the user has not registered.
         If first item is True, then second item is a string, representing the user's leetcode username
         """
-        if qq not in self.user_list.keys():
+        if qq not in UserOperation.user_list:
             return False, "Error: User not registered."
-        else:
-            return True, self.user_list[qq]
+        return True, UserOperation.user_list[qq]
+
+    @staticmethod
+    def delete_user(qq: str) -> bool:
+        """
+        [WARNING] This function should only be called from testing.
+        Delete a user record from the user database given qq account.
+        :param qq: given qq account to delete
+        :return: True, if the user is successfully deleted; False,
+        if user not in database or database file cannot found.
+        """
+        if qq not in UserOperation.user_list:
+            return False
+
+        DataBase.delete_user(qq)
+        del UserOperation.user_list[qq]
+        return True
 
 
 if __name__ == "__main__":
     # Simple Test
-    user_operation = UserOperation()
 
-    res, msg = user_operation.register("123456789", "testing")
-    print(f"result: {res}, message: {msg}")
+    UserOperation.update_user_list()
+    print(UserOperation.user_list)
 
-    # this function returns false when user does not exist
-    status, username = user_operation.get_leetcode("12")
-    if not status:
-        print("User is not registered.")
-    else:
-        print(f"username: {username}")
+    print(UserOperation.register("12345678", "test1"))
+    print(UserOperation.user_list)
+    print(UserOperation.get_leetcode("12345678"))
 
-    status, username = user_operation.get_leetcode("123456789")
-    if not status:
-        print("User is not registered.")
-    else:
-        print(f"username: {username}")
+    print(UserOperation.register("12345678", "test2"))
+    print(UserOperation.user_list)
+    print(UserOperation.get_leetcode("12345678"))
 
-    status, msg = user_operation.register("2220038250", "enor2017")
-    print(f"result: {status}, message: {msg}")
-    status, username = user_operation.get_leetcode("2220038250")
-    if not status:
-        print("User is not registered.")
-    else:
-        print(f"username: {username}")
+    print(UserOperation.delete_user("12345678"))
+    print(UserOperation.user_list)
