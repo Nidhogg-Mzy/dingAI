@@ -1,12 +1,11 @@
 from selenium import webdriver
-import selenium
+from selenium.common.exceptions import WebDriverException, SessionNotCreatedException
 
 
 class WebDriver:
     """
     This class provides a web driver for web requests.
     The driver should be only one at the same time, and can open multiple webpages.
-    TODO: It should also be refreshed timely to avoid strange problems.
     Note this class is not thread-safe.
     """
     driver = None  # The web driver
@@ -28,8 +27,7 @@ class WebDriver:
         find_in_path = True
         try:
             WebDriver.driver = webdriver.Chrome(options=options)
-        except (selenium.common.exceptions.WebDriverException,
-                selenium.common.exceptions.SessionNotCreatedException):
+        except (WebDriverException, SessionNotCreatedException):
             find_in_path = False
 
         if find_in_path:
@@ -37,9 +35,7 @@ class WebDriver:
 
         try:
             WebDriver.driver = webdriver.Chrome('./chromedriver', options=options)
-        except (selenium.common.exceptions.WebDriverException,
-                selenium.common.exceptions.SessionNotCreatedException,
-                FileNotFoundError) as e:
+        except (WebDriverException, SessionNotCreatedException, FileNotFoundError) as e:
             raise WebDriverCannotFoundException from e
 
         return WebDriver.driver
@@ -51,16 +47,13 @@ class WebDriver:
         """
         if WebDriver.driver is None:
             WebDriver.driver = WebDriver.new_driver()
+        else:
+            # webdriver may down after a period of time, create a new driver then
+            try:
+                WebDriver.driver.get("https://www.baidu.com")   # TODO: other checking methods?
+            except WebDriverException:
+                WebDriver.driver = WebDriver.new_driver()
         return WebDriver.driver
-
-    @staticmethod
-    def refresh_driver():
-        """
-        Close current driver and initialize a new one.
-        Notice this operation costs a lot of time.
-        """
-        WebDriver.driver.close()
-        WebDriver.driver = WebDriver.new_driver()
 
 
 class WebDriverCannotFoundException(Exception):
