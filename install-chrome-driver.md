@@ -13,6 +13,12 @@
 $ sudo apt-get update
 $ sudo apt-get install google-chrome-stable
 ```
+
+If the above method is not working, you can manually download chrome from [here](https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb), and install it by
+```bash
+$ sudo dpkg -i google-chrome-stable_current_amd64.deb
+```
+
 - Check chrome version by
 ```bash
 $ google-chrome --version

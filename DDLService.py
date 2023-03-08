@@ -69,29 +69,39 @@ class DDLService:
             at_participant_user += f"[CQ:at,qq={participant}] "
 
         return ("===============\n" if fancy else "") + \
-            f"日期: {ddl['date']}, 标题: {ddl['title']}\n" + \
-            f"参与者: {at_participant_user}\n" + \
-            f"备注: {ddl['description']}"
+               f"日期: {ddl['date']}, 标题: {ddl['title']}\n" + \
+               f"参与者: {at_participant_user}\n" + \
+               f"备注: {ddl['description']}"
 
     @staticmethod
-    def prettify_ddl_list(ddl_list: list, fancy=True) -> str:
+    def prettify_ddl_list(ddl_list: list, fancy=True, indices=None) -> str:
         """
         Prettify a list of ddl, use prettify_ddl to prettify each ddl
         :param ddl_list: a list of ddl to prettify
         :param fancy: if True, add a horizontal line above each ddl
+        :param indices: None if don't need to print index, otherwise a list of indices of each ddl in given ddl_list,
+        notice the length of indices should be the same as ddl_list
         :return: a string that is a pretty version of the list of ddl
         """
         if (ddl_list is None) or (not ddl_list):
             return "Hooray! You have no ddl."
 
+        # check len(ddl_list) == len(indices)
+        if indices is not None:
+            assert len(ddl_list) == len(indices), "[Internal Error] In 'prettify_ddl_list', " \
+                                                  "The length of ddl_list and indices should match."
+
         # The ddl in json is not sorted. We want to output them from the earliest to the latest.
         ddl_list.sort(key=lambda ddl_: ddl_["date"])
 
         result = ""
-        for ddl in ddl_list:
-            result += DDLService.prettify_ddl(ddl, fancy) + "\n"
+        ddl_len = len(ddl_list)
+        for i in range(ddl_len):
+            result += f"{f'({str(indices[i])})' if indices is not None else ''}" \
+                      f"{DDLService.prettify_ddl(ddl_list[i], fancy)}\n"
 
         return result
+
     @staticmethod
     def process_query(query: list, user_qq: str) -> str:
         """
@@ -100,13 +110,14 @@ class DDLService:
         :param user_qq: the qq account of the user who perform the query
         :return: a string that is the result of the query to be displayed to user
         """
+        toreturn = []
         if (query is None) or (not query):
-            return "[Internal Error] The query is empty."
+            toreturn.append("[Internal Error] The query is empty.")
         if len(query) < 2:
-            return "[Error] Invalid syntax. Use \"ddl help\" to check usage."
+            toreturn.append("[Error] Invalid syntax. Use \"ddl help\" to check usage.")
 
         if query[0] != "ddl":
-            return "[Internal Error] Non-ddl query should not be passed into function process_query."
+            toreturn.append("[Internal Error] Non-ddl query should not be passed into function process_query.")
 
         # now, process queries
         q_type = query[1]  # query type
@@ -141,13 +152,13 @@ class DDLService:
                    )
         # syntax help
         elif q_type == "help":
-            return "[ddl today]: show ddl due today\n" + \
-                   "[ddl tomorrow][ddl tmr]: show ddl due tomorrow\n" + \
-                   "[ddl week]: show ddl due in a week\n" + \
-                   "[ddl <date>]: show ddl due on a certain date (format: \"yyyy-mm-dd\")\n" + \
-                   "[ddl my]: show ddl due in a week for you\n" + \
-                   "[ddl insert]: insert a new ddl\n" + \
-                   "[ddl help]: show this help"
+            toreturn.append("[ddl today]: show ddl due today\n" +
+                            "[ddl tomorrow][ddl tmr]: show ddl due tomorrow\n" +
+                            "[ddl week]: show ddl due in a week\n" +
+                            "[ddl <date>]: show ddl due on a certain date (format: \"yyyy-mm-dd\")\n" +
+                            "[ddl my]: show ddl due in a week for you\n" + "[ddl insert]: insert a new ddl\n" +
+                            "[ddl delete]: delete a ddl by its index\n" +
+                            "[ddl help]: show this help")
         # insert a new ddl
         elif q_type == 'insert':
             if len(query) == 2:
@@ -173,9 +184,20 @@ class DDLService:
                 DDLService.store_ddl()
                 return 'Inserted successfully!'
             else:
-                return '[Error] Invalid Date.'
+                ddl_len = len(self.ddl_list)
+                if ddl_len == 0:
+                    toreturn.append("[Error] 你已经没有ddl可删了哦！")
+                else:
+                    toreturn.append('回复ddl delete <指定ddl编号> 来删除指定ddl哦\n')
+
+                for i in range(0, ddl_len, 2):
+                    upper_bound = min(i + 2, ddl_len)
+                    ddls = f"{self.prettify_ddl_list(self.ddl_list[i: upper_bound], indices=range(i, upper_bound))}"
+                    toreturn.append(ddls)
         else:
-            return "[Error] Invalid syntax. Use \"ddl help\" to check usage."
+            toreturn.append("[Error] Invalid syntax. Use \"ddl help\" to check usage.")
+        print(toreturn)
+        return toreturn
 
 
 if __name__ == "__main__":
