@@ -21,40 +21,37 @@ import re
 
 
 class DDLService:
-    def __init__(self):
-        self.filename = "ddl.json"
-        self.ddl_list = []
-        self.load_ddl_from_file()
+    filename = "ddl.json"
 
-    def load_ddl_from_file(self):
-        """
-        Load ddl list from file, store the result in self.ddl_list
-        """
-        with open(self.filename, "r") as f:
-            self.ddl_list = json.load(f)  # A list of dict
+    # Load ddl list from file, store the result in self.ddl_list
+    with open(filename, "r") as f:
+        ddl_list = json.load(f)  # A list of dict
 
-    def get_ddl(self, predicate: lambda ddl: bool) -> list:
+    @staticmethod
+    def get_ddl(predicate: lambda ddl: bool) -> list:
         """
         Return a list of ddl that satisfy the predicate
         :param predicate: a function that takes a ddl and returns True or False based on your predicate
         :return: a list of ddl that satisfy the predicate
         """
-        return list(filter(predicate, self.ddl_list))
+        return list(filter(predicate, DDLService.ddl_list))
 
-    def store_ddl(self):
+    @staticmethod
+    def store_ddl():
         """
         Store the self.ddl_list to file, we don't handle any exception here.
         """
-        with open(self.filename, "w") as f:
-            json.dump(self.ddl_list, f, indent=4, separators=(',', ': '))
+        with open(DDLService.filename, "w") as f:
+            json.dump(DDLService.ddl_list, f, indent=4, separators=(',', ': '))
 
-    def remove_expired_ddl(self):
+    @staticmethod
+    def remove_expired_ddl():
         """
         Remove all the expired ddl from self.ddl_list. This should be called periodically to
         tidy database.
         """
-        self.ddl_list = list(filter(lambda ddl: ddl['date'] >= str(datetime.date.today()), self.ddl_list))
-        self.store_ddl()
+        DDLService.ddl_list = list(filter(lambda ddl: ddl['date'] >= str(datetime.date.today()), DDLService.ddl_list))
+        DDLService.store_ddl()
 
     @staticmethod
     def prettify_ddl(ddl: dict, fancy=True) -> str:
@@ -105,7 +102,8 @@ class DDLService:
 
         return result
 
-    def process_query(self, query: list, user_qq: str) -> list:
+    @staticmethod
+    def process_query(query: list, user_qq: str) -> str:
         """
         This function processes queries from front-end, and return a string that is the result of the query
         :param query: a list that is the query from front-end, should be like "['ddl', 'today']"
@@ -124,38 +122,34 @@ class DDLService:
         # now, process queries
         q_type = query[1]  # query type
         if q_type == "today":
-            toreturn.append("ddl due today: \n" +
-                            DDLService.prettify_ddl_list(
-                                self.get_ddl(lambda ddl: ddl["date"] == str(datetime.date.today()))
-                            ))
+            return "ddl due today: \n" + \
+                   DDLService.prettify_ddl_list(DDLService.get_ddl(lambda ddl: ddl["date"] == str(datetime.date.today())))
         elif q_type == "tomorrow" or q_type == "tmr":
-            toreturn.append("ddl due tomorrow: \n" +
-                            DDLService.prettify_ddl_list(
-                                self.get_ddl(lambda ddl: ddl["date"] == str(
-                                    datetime.date.today() + datetime.timedelta(days=1)))
-                            ))
+            return "ddl due tomorrow: \n" + \
+                   DDLService.prettify_ddl_list(
+                       DDLService.get_ddl(lambda ddl: ddl["date"] == str(datetime.date.today() + datetime.timedelta(days=1))))
         # search ddl for next week
         elif q_type == "week":
-            toreturn.append("ddl due in a week: \n" +
-                            DDLService.prettify_ddl_list(
-                                self.get_ddl(lambda ddl:
-                                             str(datetime.date.today() + datetime.timedelta(days=8))
-                                             >= ddl["date"] >= str(datetime.date.today()))
-                            ))
+            return "ddl due in a week: \n" + \
+                   DDLService.prettify_ddl_list(
+                       DDLService.get_ddl(lambda ddl:
+                                    str(datetime.date.today() + datetime.timedelta(days=8))
+                                    >= ddl["date"] >= str(datetime.date.today()))
+                   )
         # else if the q_type is a date
         elif re.search(r"^\d{4}-\d{2}-\d{2}$", q_type):
-            toreturn.append("ddl due on " + q_type + ": \n" +
-                            DDLService.prettify_ddl_list(self.get_ddl(
-                                lambda ddl: ddl["date"] == str(datetime.datetime.strptime(q_type, "%Y-%m-%d").date()))
-                            ))
+            return "ddl due on " + q_type + ": \n" + \
+                   DDLService.prettify_ddl_list(DDLService.get_ddl(
+                       lambda ddl: ddl["date"] == str(datetime.datetime.strptime(q_type, "%Y-%m-%d").date()))
+                   )
         # search ddl for the user performed query
         elif q_type == "my":
-            toreturn.append(f"ddl due in a week for [CQ:at,qq={user_qq}]: \n" +
-                            DDLService.prettify_ddl_list(self.get_ddl(
-                                lambda ddl: (str(user_qq) in ddl["participants"]) and
-                                            str(datetime.date.today() + datetime.timedelta(days=8))
-                                            >= ddl["date"] >= str(datetime.date.today()))
-                            ))
+            return f"ddl due in a week for [CQ:at,qq={user_qq}]: \n" + \
+                   DDLService.prettify_ddl_list(DDLService.get_ddl(
+                       lambda ddl: (str(user_qq) in ddl["participants"]) and
+                                    str(datetime.date.today() + datetime.timedelta(days=8))
+                                    >= ddl["date"] >= str(datetime.date.today()))
+                   )
         # syntax help
         elif q_type == "help":
             toreturn.append("[ddl today]: show ddl due today\n" +
@@ -168,42 +162,27 @@ class DDLService:
         # insert a new ddl
         elif q_type == 'insert':
             if len(query) == 2:
-                toreturn.append('ddl insert {"title": "insert your title here", "date": "insert your date here", '
-                                '"participants": "at participants", "description": "insert your description here"}')
-            else:
-                ddl_info = ""
-                for i in range(2, len(query)):
-                    ddl_info += query[i] + " "
-                print(ddl_info)
-                try:
-                    res = json.loads(ddl_info)
-                    curr_date = res["date"]
-                    participants_before = res["participants"]
-                    # this regex can match all the qq numbers in the string
-                    participants_after = re.findall(r"\[CQ:at,qq=(\d*)]", participants_before)
-                    if not participants_after:
-                        toreturn.append("[Error] Invalid Participants.")
-                    res["participants"] = participants_after
-                    if re.search(r"^\d{4}-\d{2}-\d{2}$", curr_date):
-                        self.ddl_list.append(res)
-                        self.store_ddl()
-                        toreturn.append('Inserted successfully!')
-                    else:
-                        toreturn.append('[Error] Invalid Date.')
-                except json.JSONDecodeError:
-                    toreturn.append("[Error] Invalid syntax. Use \"ddl insert\" to check usage.")
-        elif q_type == 'delete':
-            if len(query) > 2:
-                try:
-                    index = int(query[2])
-                    if index not in range(len(self.ddl_list)):
-                        toreturn.append("[Error] Index out of range.")
-                    else:
-                        del self.ddl_list[index]
-                        self.store_ddl()
-                        toreturn.append('Deleted successfully!')
-                except ValueError:
-                    toreturn.append('[Error] Invalid syntax. Use \"ddl delete\" to check usage.')
+                return 'ddl insert {"title": "insert your title here", "date": "insert your date here", ' \
+                       '"participants": "at participants", "description": "insert your description here"}'
+            ddl_info = ""
+            for i in range(2, len(query)):
+                ddl_info += query[i] + " "
+            print(ddl_info)
+            try:
+                res = json.loads(ddl_info)
+            except json.JSONDecodeError:
+                return "[Error] Invalid syntax. Use \"ddl insert\" to check usage."
+            curr_date = res["date"]
+            participants_before = res["participants"]
+            # this regex can match all the qq numbers in the string
+            participants_after = re.findall(r"\[CQ:at,qq=(\d*)]", participants_before)
+            if not participants_after:
+                return "[Error] Invalid Participants."
+            res["participants"] = participants_after
+            if re.search(r"^\d{4}-\d{2}-\d{2}$", curr_date):
+                DDLService.ddl_list.append(res)
+                DDLService.store_ddl()
+                return 'Inserted successfully!'
             else:
                 ddl_len = len(self.ddl_list)
                 if ddl_len == 0:
