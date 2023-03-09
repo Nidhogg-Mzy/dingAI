@@ -184,20 +184,9 @@ class DDLService:
                 DDLService.store_ddl()
                 return 'Inserted successfully!'
             else:
-                ddl_len = len(self.ddl_list)
-                if ddl_len == 0:
-                    toreturn.append("[Error] 你已经没有ddl可删了哦！")
-                else:
-                    toreturn.append('回复ddl delete <指定ddl编号> 来删除指定ddl哦\n')
-
-                for i in range(0, ddl_len, 2):
-                    upper_bound = min(i + 2, ddl_len)
-                    ddls = f"{self.prettify_ddl_list(self.ddl_list[i: upper_bound], indices=range(i, upper_bound))}"
-                    toreturn.append(ddls)
+                return '[Error] Invalid Date.'
         else:
-            toreturn.append("[Error] Invalid syntax. Use \"ddl help\" to check usage.")
-        print(toreturn)
-        return toreturn
+            return "[Error] Invalid syntax. Use \"ddl help\" to check usage."
 
 
 if __name__ == "__main__":
