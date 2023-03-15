@@ -50,6 +50,6 @@ pip install -r requirements.txt
 
 ### 3.2 Run the project
 ```bash
-python3 receive.py
+python3 qq_receive.py
 ```
 Details TBA.
