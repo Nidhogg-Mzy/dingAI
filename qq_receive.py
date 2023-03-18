@@ -1,15 +1,11 @@
 import json
 import random
 import socket
-import time
-import datetime
-import argparse
-from threading import Thread
-import requests
 from Leetcode import Leetcode
 from DDLService import DDLService
 from multi_func_reply import Search
-from database import DataBase
+from app import App
+
 
 
 class Receive:
@@ -27,7 +23,6 @@ class Receive:
 
         ip = '127.0.0.1'
         client.connect((ip, 5700))
-
         msg_type = resp_dict['msg_type']  # message type: group or private
         number = resp_dict['number']  # reply to whom (person id or group id)
         msg = resp_dict['msg']  # message to reply
@@ -76,20 +71,115 @@ class Receive:
         client.close()
         return rev_json
 
+    @staticmethod
+    def rev_private_msg(rev):
+        if rev['raw_message'] == '在吗':
+            qq = rev['sender']['user_id']
+            Receive.send_msg({'msg_type': 'private', 'number': qq,
+                              'msg': Receive.reply_msg[random.randint(0, len(Receive.reply_msg) - 1)]})
+        elif rev['raw_message'] == '你在哪':
+            qq = rev['sender']['user_id']
+            Receive.send_msg({'msg_type': 'private', 'number': qq, 'msg': '我无处不在'})
+        # TODO: check if there will be index-out-of-bound issue
+        elif rev['raw_message'].split(' ')[0] == '歌词':
+            qq = rev['sender']['user_id']
+            if len(rev['raw_message'].split(' ')) < 2:
+                Receive.send_msg({'msg_type': 'private', 'number': qq, 'msg': '请输入：歌曲<空格><歌曲名>来获得歌曲链接哦'})
+            else:
+                song = rev['raw_message'].replace('歌词', '')
+                d = Search()
+                music_id = d.search_song(song)
+                if music_id is None:
+                    Receive.send_msg(
+                        {'msg_type': 'private', 'number': qq, 'msg': '呜呜呜人家找不到嘛，换首歌试试吧'})
+                else:
+                    text = Search.get_lyrics(music_id)
+                    Receive.send_msg(
+                        {'msg_type': 'private', 'number': qq, 'msg': text})
+        elif rev['raw_message'].split(' ')[0] == '歌曲':
+            qq = rev['sender']['user_id']
+            if len(rev['raw_message'].split(' ')) < 2:
+                Receive.send_msg({'msg_type': 'private', 'number': qq, 'msg': '请输入：歌曲<空格><歌曲名>来获得歌曲链接哦'})
+            else:
+                song = rev['raw_message'].replace('歌曲', '')
+                d = Search()
+                music_id = d.search_song(song)
+                if music_id is None:
+                    Receive.send_msg({'msg_type': 'private', 'number': qq, 'msg': '呜呜呜人家找不到嘛，换首歌试试吧'})
+                else:
+                    Receive.send_msg({'msg_type': 'private', 'number': qq, 'msg': f'[CQ:music,type=163,id={music_id}]'})
+        else:
+            qq = rev['sender']['user_id']
+            content = rev['raw_message']
+            if content == '':
+                answer = '根本搞不懂你在讲咩话，说点别的听听啦'
+            else:
+                answer = App.get_answer(content)
+            Receive.send_msg({'msg_type': 'private', 'number': qq, 'msg': answer})
 
-
+    @staticmethod
+    def rev_group_msg(rev):
+        group = rev['group_id']
+        if f'[CQ:at,qq={Receive.BOT_ACCOUNT}]' in rev["raw_message"]:
+            qq = rev['sender']['user_id']
+            message_parts = rev['raw_message'].strip().split(' ')
+            if len(message_parts) < 2:
+                Receive.send_msg({'msg_type': 'group', 'number': group, 'msg': '蛤?'})
+                return
+            if message_parts[1] == '在吗':
+                Receive.send_msg(
+                    {'msg_type': 'group', 'number': group,
+                     'msg': Receive.reply_msg[random.randint(0, len(Receive.reply_msg) - 1)]})
+            elif message_parts[1] in ['wait', 'waitlist', 'Wait']:
+                Receive.send_msg({'msg_type': 'group', 'number': group,
+                                  'msg': f"[CQ:at,qq={qq}]\n" + App.get_waitlist(str(qq))})
+            # leetcode feature
+            elif message_parts[1] == 'leet':
+                Receive.send_msg({'msg_type': 'group', 'number': group,
+                                  'msg': f"[CQ:at,qq={qq}]\n" + Leetcode.process_query(message_parts, qq)})
+            # DDL feature
+            elif message_parts[1] == 'ddl':
+                Receive.send_msg({'msg_type': 'group', 'number': group,
+                                  'msg': f"[CQ:at,qq={qq}]\n" + DDLService.process_query(message_parts[1:], qq)})
+            # TODO: add help reply
+            else:
+                content = ""
+                for i in range(1, len(message_parts)):
+                    content += message_parts[i] + " "
+                Receive.send_msg({'msg_type': 'group', 'number': group,
+                                  'msg': f'[CQ:at,qq={qq}]' + App.get_answer(content)})
 
 
     @staticmethod
-    def get_data(text):
-        # info to request api
-        # TODO: specify this in config file
-        data = {
-            "appid": "a612dbe7965b53eeb5eaf26edccc8c94",
-            "userid": "sKJAeMs3",
-            "spoken": text,
-        }
-        return data
+    def message_process_tasks():
+        """
+        All private/group message processing are done here.
+        """
+        while True:
+            received = Receive.rev_msg()
+            try:
+                if received["post_type"] == "message":
+                    # private message
+                    if received["message_type"] == "private":
+                        Receive.rev_private_msg(received)
+                    # group message
+                    elif received["message_type"] == "group":
+                        Receive.rev_group_msg(received)
+            # TODO: consider enlarge type of Error?
+            except TypeError as e:
+                # This error will be reported to developers via qq private message.
+                error_msg = '[Internal Error] TypeError while trying to reply message. ' \
+                            'If the message received is too long, try to' + \
+                            'release the length restriction. (currently 4096)\n' + \
+                            f'[Exception Message] {e}\n ' \
+                            f'Message received: {received}'
+                # TODO: specify admin account in config file
+                Receive.send_msg({'msg_type': 'private', 'number': '2220038250', 'msg': error_msg})
+                Receive.send_msg({'msg_type': 'private', 'number': '3429582673', 'msg': error_msg})
+                # also record in log
+                print(f'##### Error\n{error_msg}')
+
+
 
 
 
@@ -109,25 +199,25 @@ class Receive:
 
 
 
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-
-    args = parser.parse_args()
-
-    # initiate all the accounts
-    Receive.read_account_info(debug=args.debug)
-    # add a thread to check scheduled tasks
-    DataBase.init_database()
-    print("database initialized")
-    trd_scheduled = Thread(target=Receive.check_scheduled_task)
-    trd_scheduled.start()
-
-    # add a thread to process message reply tasks
-    trd_msg_reply = Thread(target=Receive.message_process_tasks)
-    trd_msg_reply.start()
-
-    # add a thread to update the question list and send a group notice every midnight
-    trd_daily_update = Thread(target=Receive.daily_update)
-    trd_daily_update.start()
+# if __name__ == '__main__':
+#     parser = argparse.ArgumentParser()
+#
+#     args = parser.parse_args()
+#
+#     # initiate all the accounts
+#     Receive.read_account_info(debug=args.debug)
+#     # add a thread to check scheduled tasks
+#     DataBase.init_database()
+#     print("database initialized")
+#     trd_scheduled = Thread(target=Receive.check_scheduled_task)
+#     trd_scheduled.start()
+#
+#     # add a thread to process message reply tasks
+#     trd_msg_reply = Thread(target=Receive.message_process_tasks)
+#     trd_msg_reply.start()
+#
+#     # add a thread to update the question list and send a group notice every midnight
+#     trd_daily_update = Thread(target=Receive.daily_update)
+#     trd_daily_update.start()
 
 
