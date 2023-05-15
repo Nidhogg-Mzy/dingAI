@@ -1,3 +1,5 @@
+import os
+
 from base_service import BaseService
 
 from typing import List, Optional
@@ -13,12 +15,13 @@ class GPTService(BaseService):
     config['openai']['api_key'].
     """
     _config = configparser.ConfigParser()
-    _config.read('config.ini')
+    _config.read('../config.ini')
     _OPENAI_CONFIGS = _config['openai']
     # general
     _ENABLED = _OPENAI_CONFIGS.getboolean('enabled')
     _API_KEY = _OPENAI_CONFIGS['api_key']
     _CACHE_FOLDER = _OPENAI_CONFIGS['cache_folder']
+    os.makedirs(_CACHE_FOLDER, exist_ok=True)
 
     # chat function
     _CHAT_ENABLED = _OPENAI_CONFIGS.getboolean('chat_enabled')
@@ -64,21 +67,23 @@ class GPTService(BaseService):
                 chat_history = []
 
             # add the user's message to the chat history
-            chat_history.append(query[1])
+            chat_history.append({"role": "user", "content": query[1]})
+            print(chat_history)
             # call OpenAI API to generate a response
-            response = openai.Completion.create(
+            response = openai.ChatCompletion.create(
                 model=GPTService._CHAT_MODEL,
                 messages=chat_history,
             )
             # add the response to the chat history
-            chat_history.append(response['choices'][0]['message'])
+            chat_history.append(response.choices[0].message)
             # save the chat history to the cache file
             with open(cache_file, 'w') as f:
                 json.dump(chat_history, f)
             # return the response
-            return response['choices'][0]['text']
+            return response.choices[0].message
 
         ### image function ###
 
 
-
+if __name__ == '__main__':
+    print(GPTService.process_query(['chat', 'who am i'], {'user_id': 'test'}))
