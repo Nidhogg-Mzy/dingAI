@@ -85,31 +85,32 @@ class App:
             return "抱歉，我没有理解您的意思，请换一个问题试试？"
         return answer
 
-    def get_waitlist(qq: str) -> str:
-        url = "https://w5.ab.ust.hk/msapi/sis/stdt_class_enrl/%7BstdtID%7D"
-        payload = {}
 
-        def get_header(qq: str) -> dict:
-            with open("test.config", "r") as f:
-                all_configs = json.load(f)["hkust_oauth_token"]
-            return {
-                'Authorization': f'Bearer {all_configs[qq]}',
-                'Cookie': 'language=en-US'
-            }
+def get_waitlist(qq: str) -> str:
+    url = "https://w5.ab.ust.hk/msapi/sis/stdt_class_enrl/%7BstdtID%7D"
+    payload = {}
 
-        headers = get_header(qq)
-        print(headers)
+    def get_header(qq: str) -> dict:
+        with open("test.config", "r") as f:
+            all_configs = json.load(f)["hkust_oauth_token"]
+        return {
+            'Authorization': f'Bearer {all_configs[qq]}',
+            'Cookie': 'language=en-US'
+        }
 
-        response = requests.request("GET", url, headers=headers, data=payload)
+    headers = get_header(qq)
+    print(headers)
 
-        json_response = json.loads(response.text)
-        stdInfo = json_response['stdtInfo'][0]
-        waitList = stdInfo['studentClassWaitlist']
-        info = ''
-        for c in waitList:
-            info += f'course code: {c["crseCode"]}, waitlist position: {c["waitPosition"]}\n'
+    response = requests.request("GET", url, headers=headers, data=payload)
 
-        return info
+    json_response = json.loads(response.text)
+    stdInfo = json_response['stdtInfo'][0]
+    waitList = stdInfo['studentClassWaitlist']
+    info = ''
+    for c in waitList:
+        info += f'course code: {c["crseCode"]}, waitlist position: {c["waitPosition"]}\n'
+
+    return info
 
 
 if __name__ == '__main__':

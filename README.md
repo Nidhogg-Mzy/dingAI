@@ -10,7 +10,7 @@ The configs should be self-explanatory.
 
 You can edit from the template we provided.
 ```bash
-cp config-template.json config.json
+cp config-template.json config.ini
 ```
 
 The config file should have such json structure.
