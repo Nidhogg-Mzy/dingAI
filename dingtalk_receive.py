@@ -15,23 +15,23 @@ class Receive:
                  '只要你找我，我无时无刻不在', '我在想，你累不累，毕竟你在我心里跑一天了', '想我了，就直说嘛',
                  '我在想，用多少度的水泡你比较合适', '你看不出来吗，我在等你找我啊']
     app = Flask(__name__)
-    # ListenSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    # ListenSocket.bind(('127.0.0.1', 5701))
-    # ListenSocket.listen(100)
     filename = 'config.ini'
     """
-    structure of header:
-    {
-      "Content-Type": "application/json; charset=utf-8",
-      "timestamp": "1577262236757",
-      "sign":"xxxxxxxxxx"
-    }
+
     """
 
     @staticmethod
     def verify_sign(header: dict) -> bool:
         """
         This function takes out the timestamp and verify the sign of the sender
+            structure of header:
+        {
+          "Content-Type": "application/json; charset=utf-8",
+          "timestamp": "1577262236757",
+          "sign":"xxxxxxxxxx"
+        }
+        @param header: the header of the received message
+        @return a bool if the sign is a validate sign
         """
         timestamp = header['timestamp']
         app_secret = 'this is a secret'
@@ -75,20 +75,8 @@ class Receive:
         url = 'https://oapi.dingtalk.com/robot/send?access_token=6e3b6e9db9f5b1d029615e4ea6fff2b716d77cf89a8adc9449603501bfdf9e0a'
         print(requests.post(url, json=data, headers=headers).text)
 
-    @staticmethod
-    def read_account_info(debug: bool):
-        with open(Receive.filename, "r", encoding='utf-8') as f:
-            accounts = json.load(f)["accounts"]
-            # use testing account and group if debug is True
-            Receive.BOT_ACCOUNT = accounts['testing_bot'] if debug else accounts['official_bot']
-            Receive.GROUP_ACCOUNT = accounts['testing_group'] if debug else accounts['testing_bot']
 
-    @staticmethod
-    def request_to_json(msg):
-        for i in range(len(msg)):
-            if msg[i] == "{" and msg[-1] == "\n":
-                return json.loads(msg[i:])
-        return None
+
 
     @staticmethod
     def rev_msg():  # json or None
@@ -118,7 +106,7 @@ class Receive:
                 Receive.rev_group_msg(received)
             return ''
  
-# TODO: consider enlarge type of Error?
+        # TODO: consider enlarge type of Error?
         except TypeError as e:
             # This error will be reported to developers via qq private message.
             error_msg = '[Internal Error] TypeError while trying to reply message. ' \
@@ -131,33 +119,13 @@ class Receive:
     @staticmethod
     def rev_group_msg(rev):
         message_parts = rev['msg'].strip().split(' ')
-# if len(message_parts) < 2:
-# Receive.send_msg(msgtype='text', msg='蛤?')
-# return
-#if message_parts[1] == '在吗':
-        Receive.send_msg(msgtype='text', msg=Receive.reply_msg[random.randint(0, len(Receive.reply_msg) - 1)])
-        print('msg sent')
+        if len(message_parts) < 1:
+            Receive.send_msg(msgtype='text', msg='蛤?')
+        elif message_parts[0] == '在吗':
+            Receive.send_msg(msgtype='text', msg=Receive.reply_msg[random.randint(0, len(Receive.reply_msg) - 1)])
+        else:
+            Receive.get_data(rev['msg'])
         return
-# return Receive.reply_msg[random.randint(0, len(Receive.reply_msg) - 1)]
-        # elif message_parts[1] in ['wait', 'waitlist', 'Wait']:
-        #     Receive.send_msg(msgtype='text', msg=Receive.reply_msg[random.randint(0, len(Receive.reply_msg)
-        #     Receive.send_msg({'msg_type': 'group', 'number': group,
-        #                       'msg': f"[CQ:at,qq={qq}]\n" + App.get_waitlist(str(qq))})
-        # # leetcode feature
-        # elif message_parts[1] == 'leet':
-        #     Receive.send_msg({'msg_type': 'group', 'number': group,
-        #                       'msg': f"[CQ:at,qq={qq}]\n" + Leetcode.process_query(message_parts, qq)})
-        # # DDL feature
-        # elif message_parts[1] == 'ddl':
-        #     Receive.send_msg({'msg_type': 'group', 'number': group,
-        #                       'msg': f"[CQ:at,qq={qq}]\n" + DDLService.process_query(message_parts[1:], qq)})
-        # # TODO: add help reply
-        # else:
-        #     content = ""
-        #     for i in range(1, len(message_parts)):
-        #         content += message_parts[i] + " "
-        #     Receive.send_msg({'msg_type': 'group', 'number': group,
-        #                       'msg': f'[CQ:at,qq={qq}]' + App.get_answer(content)})
 
     @staticmethod
     def get_data(text):
