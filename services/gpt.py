@@ -1,12 +1,12 @@
+import configparser
+import json
 import os
+from typing import List, Optional
+
+import openai
 
 from base_service import BaseService
 
-from typing import List, Optional
-import configparser
-import json
-
-import openai
 
 class GPTService(BaseService):
     """
@@ -32,6 +32,18 @@ class GPTService(BaseService):
 
     @staticmethod
     def process_query(query: List[str], extra_info: Optional[dict] = None) -> str:
+        """
+        Process GPT service query.
+
+        :param query: a list of strings, the first string must be either 'chat' or 'image',
+            the rest of the strings are the prompt for the query.
+        :param extra_info: a dictionary that contains extra information. Possible fields:
+            'user_id' (mandatory): a string, the user id of the user who sent the query.
+            'use_cache' (optional): a boolean, whether to use cache. Default is True. Note that
+                if this is set to False, the cache will be deleted permanently.
+        :return: a string, the response of the query.
+        :raises ValueError: if the query is invalid.
+        """
         # validate query
         if len(query) == 0:
             raise ValueError(f'Invalid query: query length is 0, but is passed into GPTService')
@@ -40,7 +52,7 @@ class GPTService(BaseService):
         if extra_info is None or 'user_id' not in extra_info:
             raise ValueError(f'To use GPTService, "user_id" must be provided in extra_info')
         # if user only pass in func name, but no prompt, return help message
-        if len(query) == 1:
+        if len(query) == 1 or query[1] == 'help':
             return f'[Error] Your query is not complete.\n\n{GPTService.get_help()}'
 
         # check if the service is enabled
@@ -67,7 +79,8 @@ class GPTService(BaseService):
                 chat_history = []
 
             # add the user's message to the chat history
-            chat_history.append({"role": "user", "content": query[1]})
+            prompt = ' '.join(query[1:])
+            chat_history.append({"role": "user", "content": prompt})
             print(chat_history)
             # call OpenAI API to generate a response
             response = openai.ChatCompletion.create(
@@ -82,8 +95,20 @@ class GPTService(BaseService):
             # return the response
             return response.choices[0].message
 
-        ### image function ###
+        # image function #
+        raise NotImplementedError(f'Image function is not implemented yet')
+
+    @staticmethod
+    def get_help() -> str:
+        return f'GPTService is a service that uses ChatGPT-3.5 API provided by OpenAI to generate text.\n' \
+               f'[Usage]\n' \
+               f'    chat <message>\n' \
+               f'    image <message> (not available)\n' \
+               f'[Example]\n' \
+               f'    chat who are you\n'
 
 
 if __name__ == '__main__':
-    print(GPTService.process_query(['chat', 'who am i'], {'user_id': 'test'}))
+    print(GPTService.process_query(['chat'], {'user_id': 'test'}))
+    print(GPTService.process_query(['chat', 'help'], {'user_id': 'test'}))
+    print(GPTService.process_query(['chat', 'who', 'am', 'i'], {'user_id': 'test'}))
