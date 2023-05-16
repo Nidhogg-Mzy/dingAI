@@ -7,6 +7,8 @@ import random
 import requests
 from flask import Flask, request
 
+from services.gpt import GPTService
+
 
 class Receive:
     reply_msg = ['在的呀小可爱', '一直在的呀', '呜呜呜找人家什么事嘛', '我无处不在', 'always here', '在的呀',
@@ -148,6 +150,9 @@ class Receive:
         #     Receive.send_msg(msgtype='markdown', userId=userId, msg=App.get_waitlist(str(qq)))
         # elif message_parts[1] == 'leet':
         #     Receive.send_msg(msgtype='markdown', userId=userId, msg=Leetcode.process_query(message_parts, qq))
+        elif message_parts[0] == 'chat':
+            response = GPTService.process_query(message_parts, {'user_id': userId})
+            Receive.send_msg(msgtype='markdown', userId=userId, msg=response)
         else:
             Receive.get_data(rev['msg'])
         return
