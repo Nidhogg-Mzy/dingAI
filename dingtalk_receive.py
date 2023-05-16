@@ -43,7 +43,7 @@ class Receive:
         return sign == header['sign']
 
     @staticmethod
-    def send_msg(msgtype: str, msg: str):
+    def send_msg(msgtype: str, msg: str, userId: str, isAtAll=False):
         """
         format of text message sent
         {
@@ -66,11 +66,31 @@ class Receive:
         headers = {'Content-Type': 'application/json' }
         if msgtype == 'text':
             data = {
-                'text': {
-                    'content': msg
+                "text": {
+                    "content": msg
                 },
-                'msgtype': msgtype
+                "msgtype": msgtype,
+                "at": {
+                    "atUserIds": [
+                        userId
+                    ],
+                    "isAtAll": isAtAll
+                }
             }
+        elif msgtype == 'markdown':
+            data = {
+             "msgtype": "markdown",
+             "markdown": {
+                 "title":"回复消息",
+                 "text": msg
+             },
+            "at": {
+                "atUserIds": [
+                    userId
+                ],
+                "isAtAll": isAtAll
+            }
+ }
 
         url = 'https://oapi.dingtalk.com/robot/send?access_token=6e3b6e9db9f5b1d029615e4ea6fff2b716d77cf89a8adc9449603501bfdf9e0a'
         print(requests.post(url, json=data, headers=headers).text)
@@ -91,7 +111,7 @@ class Receive:
     def parse_body(body) -> dict:
         parsed_msg = {'message_type': body['msgtype'],
                       'conversation_type': 'private' if body['conversationType'] == 1 else 'group',
-                      'msg': body['text']['content'], 'sender_nick': body['senderNick']}
+                      'msg': body['text']['content'], 'senderId': body['senderStaffId'], 'sender_nick': body['senderNick']}
         return parsed_msg
 
     @staticmethod
@@ -118,11 +138,16 @@ class Receive:
 
     @staticmethod
     def rev_group_msg(rev):
+        userId = rev['senderId']
         message_parts = rev['msg'].strip().split(' ')
         if len(message_parts) < 1:
-            Receive.send_msg(msgtype='text', msg='蛤?')
+            Receive.send_msg(msgtype='markdown', userId=userId, msg='蛤?')
         elif message_parts[0] == '在吗':
-            Receive.send_msg(msgtype='text', msg=Receive.reply_msg[random.randint(0, len(Receive.reply_msg) - 1)])
+            Receive.send_msg(msgtype='markdown', userId=userId, msg=Receive.reply_msg[random.randint(0, len(Receive.reply_msg) - 1)])
+        # elif message_parts[0] in ['wait', 'waitlist', 'Wait']:
+        #     Receive.send_msg(msgtype='markdown', userId=userId, msg=App.get_waitlist(str(qq)))
+        # elif message_parts[1] == 'leet':
+        #     Receive.send_msg(msgtype='markdown', userId=userId, msg=Leetcode.process_query(message_parts, qq))
         else:
             Receive.get_data(rev['msg'])
         return
