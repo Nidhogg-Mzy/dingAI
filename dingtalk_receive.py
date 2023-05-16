@@ -63,6 +63,7 @@ class Receive:
         }
         """
         data = {}
+        headers = {'Content-Type': 'application/json' }
         if msgtype == 'text':
             data = {
                 'text': {
@@ -72,7 +73,7 @@ class Receive:
             }
 
         url = 'https://oapi.dingtalk.com/robot/send?access_token=6e3b6e9db9f5b1d029615e4ea6fff2b716d77cf89a8adc9449603501bfdf9e0a'
-        requests.post(url, data=data)
+        print(requests.post(url, json=data, headers=headers).text)
 
     @staticmethod
     def read_account_info(debug: bool):
@@ -106,7 +107,7 @@ class Receive:
         return parsed_msg
 
     @staticmethod
-    @app.route('/', methods=['POST'])
+    @app.route('/', methods=['POST', 'GET'])
     def message_process_tasks():
         """
         All private/group message processing are done here.
@@ -114,8 +115,10 @@ class Receive:
         received = Receive.rev_msg()
         try:
             if received["conversation_type"] == "group":
-                return ''
-        # TODO: consider enlarge type of Error?
+                Receive.rev_group_msg(received)
+            return ''
+ 
+# TODO: consider enlarge type of Error?
         except TypeError as e:
             # This error will be reported to developers via qq private message.
             error_msg = '[Internal Error] TypeError while trying to reply message. ' \
@@ -128,12 +131,14 @@ class Receive:
     @staticmethod
     def rev_group_msg(rev):
         message_parts = rev['msg'].strip().split(' ')
-        if len(message_parts) < 2:
-            Receive.send_msg(msgtype='text', msg='蛤?')
-            return
-        if message_parts[1] == '在吗':
-            Receive.send_msg(msgtype='text', msg=Receive.reply_msg[random.randint(0, len(Receive.reply_msg) - 1)])
-            # return Receive.reply_msg[random.randint(0, len(Receive.reply_msg) - 1)]
+# if len(message_parts) < 2:
+# Receive.send_msg(msgtype='text', msg='蛤?')
+# return
+#if message_parts[1] == '在吗':
+        Receive.send_msg(msgtype='text', msg=Receive.reply_msg[random.randint(0, len(Receive.reply_msg) - 1)])
+        print('msg sent')
+        return
+# return Receive.reply_msg[random.randint(0, len(Receive.reply_msg) - 1)]
         # elif message_parts[1] in ['wait', 'waitlist', 'Wait']:
         #     Receive.send_msg(msgtype='text', msg=Receive.reply_msg[random.randint(0, len(Receive.reply_msg)
         #     Receive.send_msg({'msg_type': 'group', 'number': group,
@@ -167,4 +172,4 @@ class Receive:
 
 
 if __name__ == '__main__':
-    Receive.app.run('0.0.0.0', 1234)
+    Receive.app.run('0.0.0.0', 60001)
