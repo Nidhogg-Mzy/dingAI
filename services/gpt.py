@@ -100,12 +100,12 @@ class GPTService(BaseService):
 
     @staticmethod
     def get_help() -> str:
-        return f'GPTService is a service that uses ChatGPT-3.5 API provided by OpenAI to generate text.\n' \
+        return f'**GPTService is a service that uses ChatGPT-3.5 API provided by OpenAI to generate text.**\n' \
                f'[Usage]\n' \
-               f'    chat <message>\n' \
-               f'    image <message> (not available)\n' \
+               f'- chat <message>\n' \
+               f'- image <message> (not available)\n' \
                f'[Example]\n' \
-               f'    chat who are you\n'
+               f'- chat who are you\n'
 
 
 if __name__ == '__main__':
