@@ -29,6 +29,8 @@ jobs:
     # temporaily disable chromedriver
     # - name: setup-chromedriver
     #   uses: nanasess/setup-chromedriver@v1.0.7
+    - name: create config.ini file
+      run: echo "${{ secrets.CONFIG_INI }}" > config.ini
     - name: Lint with flake8
       run: |
         # stop the build if there are Python syntax errors or undefined names
