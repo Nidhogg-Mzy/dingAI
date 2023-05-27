@@ -1,7 +1,8 @@
 import configparser
 import json
 import os
-from typing import List, Optional
+import re
+from typing import List, Iterable
 
 import openai
 
@@ -10,7 +11,7 @@ from .base_service import BaseService
 
 class GPTService(BaseService):
     """
-    This class is the service that generates text using GPT-3 API provided by OpenAI.
+    This class is the service that generates text using GPT API provided by OpenAI.
     To use this service, you need to have an API key from OpenAI and provided in
     config['openai']['api_key'].
     """
@@ -30,6 +31,7 @@ class GPTService(BaseService):
         # only execute once
         if GPTService._initialized:
             return None
+        GPTService._initialized = True
 
         openai_configs = configs['openai']
         root_dir = configs['project']['root_path']
@@ -61,7 +63,7 @@ class GPTService(BaseService):
         """
         # must be init before query
         if not GPTService._initialized:
-            raise ValueError('[Error] not initialized before query, please contact the administrator.')
+            return '[Error] not initialized before query, please contact the administrator.'
         # validate query
         if len(query) == 0:
             raise ValueError(f'Invalid query: query length is 0, but is passed into GPTService')
@@ -100,12 +102,12 @@ class GPTService(BaseService):
             # add the user's message to the chat history
             prompt = ' '.join(query[1:])
             chat_history.append({"role": "user", "content": prompt})
-            print(chat_history)
+
             # call OpenAI API to generate a response
             response = openai.ChatCompletion.create(
                 model=GPTService._CHAT_MODEL,
                 messages=chat_history,
-                max_tokens=GPTService._MAX_TOKEN
+                max_tokens=int(GPTService._MAX_TOKEN)
             )
             # add the response to the chat history
             chat_history.append(response.choices[0].message)
@@ -170,8 +172,9 @@ class GPTService(BaseService):
 
 
 if __name__ == '__main__':
-    # TODO: load config here
-    GPTService.load_config()
+    configs = configparser.ConfigParser()
+    configs.read('./config.ini')
+    GPTService.load_config(configs)
     print(GPTService.process_query(['chat'], 'test'))
     print(GPTService.process_query(['chat', 'help'], 'test'))
     print(GPTService.process_query(['chat', 'who', 'am', 'i'], 'test'))
