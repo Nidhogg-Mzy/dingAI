@@ -6,5 +6,5 @@ SERVICES_MAP = {
     'chathist': GPTService,
     'chatload': GPTService,
     'chatsave': GPTService,
-    'chatdiscard: GPTService',
+    'chatdiscard': GPTService,
 }
