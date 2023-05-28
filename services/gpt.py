@@ -67,7 +67,7 @@ class GPTService(BaseService):
         # validate query
         if len(query) == 0:
             raise ValueError(f'Invalid query: query length is 0, but is passed into GPTService')
-        if query[0] not in ['chat', 'image']:
+        if query[0] not in ['chat', 'chathistory', 'chathist', 'chatload', 'chatsave', 'chatdiscard', 'image']:
             raise ValueError(f'Invalid query: query[0] = "{query[0]}", but is passed into GPTService')
         # if user only pass in func name, but no prompt, return help message
         if len(query) == 1:
