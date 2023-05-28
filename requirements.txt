@@ -19,4 +19,4 @@ wheel==0.37.1
 mysql-connector-python==8.0.29
 Flask~=2.3.2
 openai~=0.27.4
-typing~=3.10.0.0
+typing~=3.7.4
