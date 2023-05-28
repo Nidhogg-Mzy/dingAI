@@ -3,10 +3,8 @@ import hashlib
 import hmac
 import json
 import random
-
-import requests
-from flask import Flask, request
-
+from flask import Flask, jsonify, make_response, request
+from services import SERVICES_MAP
 from services.gpt import GPTService
 
 
@@ -45,7 +43,7 @@ class Receive:
         return sign == header['sign']
 
     @staticmethod
-    def send_msg(msgtype: str, msg: str, userId: str, isAtAll=False):
+    def parse_msg(msgtype: str, msg: str, userId: str, isAtAll=False):
         """
         format of text message sent
         {
@@ -65,7 +63,7 @@ class Receive:
         }
         """
         data = {}
-        headers = {'Content-Type': 'application/json' }
+        headers = {'Content-Type': 'application/json'}
         if msgtype == 'text':
             data = {
                 "text": {
@@ -81,24 +79,21 @@ class Receive:
             }
         elif msgtype == 'markdown':
             data = {
-             "msgtype": "markdown",
-             "markdown": {
-                 "title":"回复消息",
-                 "text": msg
-             },
-            "at": {
-                "atUserIds": [
-                    userId
-                ],
-                "isAtAll": isAtAll
+                "msgtype": "markdown",
+                "markdown": {
+                    "title": "回复消息",
+                    "text": msg
+                },
+                "at": {
+                    "atUserIds": [
+                        userId
+                    ],
+                    "isAtAll": isAtAll
+                }
             }
- }
-
-        url = 'https://oapi.dingtalk.com/robot/send?access_token=6e3b6e9db9f5b1d029615e4ea6fff2b716d77cf89a8adc9449603501bfdf9e0a'
-        print(requests.post(url, json=data, headers=headers).text)
-
-
-
+        return data
+        # url = 'https://oapi.dingtalk.com/robot/send?access_token=6e3b6e9db9f5b1d029615e4ea6fff2b716d77cf89a8adc9449603501bfdf9e0a'
+        # print(requests.post(url, json=data, headers=headers).text)
 
     @staticmethod
     def rev_msg():  # json or None
@@ -113,7 +108,8 @@ class Receive:
     def parse_body(body) -> dict:
         parsed_msg = {'message_type': body['msgtype'],
                       'conversation_type': 'private' if body['conversationType'] == 1 else 'group',
-                      'msg': body['text']['content'], 'senderId': body['senderStaffId'], 'sender_nick': body['senderNick']}
+                      'msg': body['text']['content'], 'senderId': body['senderStaffId'],
+                      'sender_nick': body['senderNick']}
         return parsed_msg
 
     @staticmethod
@@ -123,50 +119,28 @@ class Receive:
         All private/group message processing are done here.
         """
         received = Receive.rev_msg()
-        try:
-            if received["conversation_type"] == "group":
-                Receive.rev_group_msg(received)
-            return ''
- 
-        # TODO: consider enlarge type of Error?
-        except TypeError as e:
-            # This error will be reported to developers via qq private message.
-            error_msg = '[Internal Error] TypeError while trying to reply message. ' \
-                        'If the message received is too long, try to' + \
-                        'release the length restriction. (currently 4096)\n' + \
-                        f'[Exception Message] {e}\n ' \
-                        f'Message received: {received}'
-            print(f'##### Error\n{error_msg}')
+        if received["conversation_type"] == "group":
+            return Receive.rev_group_msg(received)
 
     @staticmethod
-    def rev_group_msg(rev):
-        userId = rev['senderId']
-        message_parts = rev['msg'].strip().split(' ')
+    def rev_group_msg(received):
+        userId = received['senderId']
+        message_parts = received['msg'].strip().split(' ')
         if len(message_parts) < 1:
-            Receive.send_msg(msgtype='markdown', userId=userId, msg='蛤?')
+            return_msg = Receive.parse_msg(msgtype='markdown', userId=userId, msg='蛤?')
         elif message_parts[0] == '在吗':
-            Receive.send_msg(msgtype='markdown', userId=userId, msg=Receive.reply_msg[random.randint(0, len(Receive.reply_msg) - 1)])
-        # elif message_parts[0] in ['wait', 'waitlist', 'Wait']:
-        #     Receive.send_msg(msgtype='markdown', userId=userId, msg=App.get_waitlist(str(qq)))
-        # elif message_parts[1] == 'leet':
-        #     Receive.send_msg(msgtype='markdown', userId=userId, msg=Leetcode.process_query(message_parts, qq))
-        elif message_parts[0] == 'chat':
-            response = GPTService.process_query(message_parts, {'user_id': userId})
-            Receive.send_msg(msgtype='markdown', userId=userId, msg=response)
+            return_msg = Receive.parse_msg(msgtype='markdown', userId=userId,
+                                           msg=Receive.reply_msg[random.randint(0, len(Receive.reply_msg) - 1)])
         else:
-            Receive.get_data(rev['msg'])
-        return
-
-    @staticmethod
-    def get_data(text):
-        # info to request api
-        # TODO: specify this in config file
-        data = {
-            "appid": "a612dbe7965b53eeb5eaf26edccc8c94",
-            "userid": "sKJAeMs3",
-            "spoken": text,
-        }
-        return data
+            try:
+                service = SERVICES_MAP[message_parts[0]]
+                return_msg = Receive.parse_msg(msgtype='markdown', userId=userId,
+                                               msg=service.process_query(message_parts, {'user_id': userId}))
+            except KeyError:
+                return_msg = "We currently do not support this kind of service"
+        response = make_response(jsonify(return_msg))
+        response.headers['Content-Type'] = 'application/json'
+        return response
 
 
 if __name__ == '__main__':
