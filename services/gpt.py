@@ -1,59 +1,79 @@
 import configparser
 import json
 import os
-from typing import List, Optional
+import re
+from typing import List, Iterable
 
 import openai
 
-from base_service import BaseService
+from .base_service import BaseService
 
 
 class GPTService(BaseService):
     """
-    This class is the service that generates text using GPT-3 API provided by OpenAI.
+    This class is the service that generates text using GPT API provided by OpenAI.
     To use this service, you need to have an API key from OpenAI and provided in
     config['openai']['api_key'].
     """
-    _config = configparser.ConfigParser()
-    _config.read('../config.ini')
-    _OPENAI_CONFIGS = _config['openai']
-    # general
-    _ENABLED = _OPENAI_CONFIGS.getboolean('enabled')
-    _API_KEY = _OPENAI_CONFIGS['api_key']
-    _CACHE_FOLDER = _OPENAI_CONFIGS['cache_folder']
-    os.makedirs(_CACHE_FOLDER, exist_ok=True)
 
-    # chat function
-    _CHAT_ENABLED = _OPENAI_CONFIGS.getboolean('chat_enabled')
-    _CHAT_MODEL = _OPENAI_CONFIGS['chat_model']
+    _initialized = False
 
-    # image function
-    _IMAGE_ENABLED = _OPENAI_CONFIGS.getboolean('image_enabled')
+    _ENABLED = None
+    _API_KEY = None
+    _CACHE_FOLDER = None
+    _CHAT_ENABLED = None
+    _CHAT_MODEL = None
+    _MAX_TOKEN = None
+    _IMAGE_ENABLED = None
 
     @staticmethod
-    def process_query(query: List[str], extra_info: Optional[dict] = None) -> str:
+    def load_config(configs: dict) -> None:
+        # only execute once
+        if GPTService._initialized:
+            return None
+        GPTService._initialized = True
+
+        openai_configs = configs['openai']
+        root_dir = configs['project']['root_path']
+        # general
+        GPTService._ENABLED = openai_configs.getboolean('enabled')
+        GPTService._API_KEY = openai_configs['api_key']
+        # TODO: concat path with ${root_path}/services/${cache_folder}
+        GPTService._CACHE_FOLDER = openai_configs['cache_folder']
+        os.makedirs(GPTService._CACHE_FOLDER, exist_ok=True)
+
+        # chat function
+        GPTService._CHAT_ENABLED = openai_configs.getboolean('chat_enabled')
+        GPTService._CHAT_MODEL = openai_configs['chat_model']
+        GPTService._MAX_TOKEN = openai_configs['max_tokens']
+
+        # image function
+        GPTService._IMAGE_ENABLED = openai_configs.getboolean('image_enabled')
+
+    @staticmethod
+    def process_query(query: List[str], user_id: str) -> str:
         """
         Process GPT service query.
 
         :param query: a list of strings, the first string must be either 'chat' or 'image',
             the rest of the strings are the prompt for the query.
-        :param extra_info: a dictionary that contains extra information. Possible fields:
-            'user_id' (mandatory): a string, the user id of the user who sent the query.
-            'use_cache' (optional): a boolean, whether to use cache. Default is True. Note that
-                if this is set to False, the cache will be deleted permanently.
-        :return: a string, the response of the query.
+        :param user_id: a string, the user id of the user who sent the query.
+        :return: a string, the response of the query, in Markdown syntax.
         :raises ValueError: if the query is invalid.
         """
+        # must be init before query
+        if not GPTService._initialized:
+            return '[Error] not initialized before query, please contact the administrator.'
         # validate query
         if len(query) == 0:
             raise ValueError(f'Invalid query: query length is 0, but is passed into GPTService')
-        if query[0] not in ['chat', 'image']:
+        if query[0] not in ['chat', 'chathistory', 'chathist', 'chatload', 'chatsave', 'chatdiscard', 'image']:
             raise ValueError(f'Invalid query: query[0] = "{query[0]}", but is passed into GPTService')
-        if extra_info is None or 'user_id' not in extra_info:
-            raise ValueError(f'To use GPTService, "user_id" must be provided in extra_info')
         # if user only pass in func name, but no prompt, return help message
-        if len(query) == 1 or query[1] == 'help':
+        if len(query) == 1:
             return f'[Error] Your query is not complete.\n\n{GPTService.get_help()}'
+        if query[1] == 'help':
+            return GPTService.get_help()
 
         # check if the service is enabled
         if not GPTService._ENABLED:
@@ -69,9 +89,10 @@ class GPTService(BaseService):
 
         # chat function #
         if query[0] == 'chat':
-            # check if there is a cache file (json format) for this user,
-            # if there is, retrieve the chat history, otherwise, create a new cache file
-            cache_file = f'{GPTService._CACHE_FOLDER}/{extra_info["user_id"]}.json'
+            # always write to temp file, then depending on whether user save or discard it,
+            # either rename to a meaningful name provided by user, or delete it
+            os.makedirs(f'{GPTService._CACHE_FOLDER}/{user_id}', exist_ok=True)
+            cache_file = f'{GPTService._CACHE_FOLDER}/{user_id}/temp.json'
             try:
                 with open(cache_file, 'r') as f:
                     chat_history = json.load(f)
@@ -81,11 +102,11 @@ class GPTService(BaseService):
             # add the user's message to the chat history
             prompt = ' '.join(query[1:])
             chat_history.append({"role": "user", "content": prompt})
-            print(chat_history)
             # call OpenAI API to generate a response
             response = openai.ChatCompletion.create(
                 model=GPTService._CHAT_MODEL,
                 messages=chat_history,
+                max_tokens=int(GPTService._MAX_TOKEN)
             )
             # add the response to the chat history
             chat_history.append(response.choices[0].message)
@@ -93,22 +114,66 @@ class GPTService(BaseService):
             with open(cache_file, 'w') as f:
                 json.dump(chat_history, f)
             # return the response
-            return response.choices[0].message
+            return response.choices[0].message.content
+        elif query[0] in ['chathistory', 'chathist']:
+            # list histories we have
+            user_folder = f'{GPTService._CACHE_FOLDER}/{user_id}'
+            os.makedirs(user_folder, exist_ok=True)     # in case user didn't have a folder
+            all_files = os.listdir(user_folder)
+            # TODO: use regex to filter all files in format (%d+)-(.*).json
+            history_files = filter(lambda x: True, all_files)
+
+        elif query[0] == 'chatload':
+            # load specific chat to temp.json
+            # don't touch original chat history unless user save it
+            if len(query) < 2:
+                return '[Error] You need to specify history number to load a chat history'
+            history_no = query[1]
+            user_folder = f'{GPTService._CACHE_FOLDER}/{user_id}'
+            os.makedirs(user_folder, exist_ok=True)  # in case user didn't have a folder
+            all_files = os.listdir(user_folder)
+            # TODO: use regex to find history in format ${history_no}-(.*).json
+            history_file = None
+            if history_file is None:
+                return '[Error] History no is not valid. If you think this is an error, please contact administrator.'
+            # history file found! load into temp.json
+            with open(history_file, 'r') as f:
+                history_content = f.read()
+            with open(f'{user_folder}/temp.json', 'w+') as f:
+                f.write(history_content)
+            # TODO: prompt success, and display last query and answer
+            raise NotImplementedError()
+
+        elif query[0] == 'chatsave':
+            # TODO: implement this
+            raise NotImplementedError()
+
+        elif query[0] == 'chatdiscard':
+            # TODO: implement this
+            raise NotImplementedError()
 
         # image function #
+        # TODO: implement image function
         raise NotImplementedError(f'Image function is not implemented yet')
 
     @staticmethod
     def get_help() -> str:
         return f'**GPTService is a service that uses ChatGPT-3.5 API provided by OpenAI to generate text.**\n' \
                f'[Usage]\n' \
-               f'- chat <message>\n' \
-               f'- image <message> (not available)\n' \
+               f'- `chat <message>`: send <message> to GPT, and get the response.\n' \
+               f'- `chathistory` or `chathist`: list the history chats with GPT.\n' \
+               f'- `chatload <history no>`: continue the corresponding history chat, <history no> can be ' \
+               f'obtained by `chathistory`. *Notice that current chat session will be discarded.*\n' \
+               f'- `chatsave <name>`: Quit current GPT session, and **save** chats history with given name.\n' \
+               f'- `chatdiscard`: (Encouraged) Quit current GPT session, and **discard** chats history.\n' \
                f'[Example]\n' \
                f'- chat who are you\n'
 
 
 if __name__ == '__main__':
-    print(GPTService.process_query(['chat'], {'user_id': 'test'}))
-    print(GPTService.process_query(['chat', 'help'], {'user_id': 'test'}))
-    print(GPTService.process_query(['chat', 'who', 'am', 'i'], {'user_id': 'test'}))
+    configs = configparser.ConfigParser()
+    configs.read('./config.ini')
+    GPTService.load_config(configs)
+    print(GPTService.process_query(['chat'], 'test'))
+    print(GPTService.process_query(['chat', 'help'], 'test'))
+    print(GPTService.process_query(['chat', 'who', 'am', 'i'], 'test'))
