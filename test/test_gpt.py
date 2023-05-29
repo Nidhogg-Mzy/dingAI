@@ -33,10 +33,10 @@ class GPTTests(unittest.TestCase):
 
     def test_get_help(self):
         help_msg = GPTService.get_help()
-        self.assertTrue('[Usage]' in help_msg)
+        self.assertTrue('[Basic Usage]' in help_msg)
 
         resp = GPTService.process_query(['chat', 'help'], 'test1')
-        self.assertTrue('[Usage]' in resp)
+        self.assertTrue('[Basic Usage]' in resp)
 
     def test_invalid_query(self):
         with self.assertRaises(ValueError):
