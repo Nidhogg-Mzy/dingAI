@@ -56,6 +56,20 @@ class GPTTests(unittest.TestCase):
         self.assertGreater(len(resp), 0)
         self.assertTrue('Arlington' in resp, 'GPT should have memory to answer this question')
 
+    def test_chat_discard(self):
+        resp = GPTService.process_query(['chat', 'Who', 'won', 'the', 'world', 'series', 'in', '2020?'], 'test1')
+        self.assertGreater(len(resp), 0)
+        self.assertTrue('Los Angeles Dodgers' in resp)
+
+        # discard the memory
+        resp = GPTService.process_query(['chatdiscard'], 'test1')
+        self.assertTrue('Successfully **discarded**' in resp)
+
+        # once we discard memory, gpt should not be able to answer this
+        resp = GPTService.process_query(['chat', 'Where', 'was', 'it', 'played?'], 'test1')
+        self.assertGreater(len(resp), 0)
+        self.assertFalse('Arlington' in resp, 'GPT should NOT have memory to answer this question')
+
 
 if __name__ == '__main__':
     unittest.main()

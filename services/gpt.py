@@ -152,8 +152,12 @@ class GPTService(BaseService):
             raise NotImplementedError()
 
         elif query[0] == 'chatdiscard':
-            # TODO: implement this
-            raise NotImplementedError()
+            cache_file = f'{GPTService._CACHE_FOLDER}/{user_id}/temp.json'
+            if os.path.exists(cache_file):
+                os.remove(cache_file)
+
+            return 'Successfully **discarded** current chat session. However, if you loaded a chat history, ' \
+                   'it will still be there. You can delete it using `chatdelete <history no>`.'
 
         # image function #
         # TODO: implement image function
