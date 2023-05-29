@@ -38,8 +38,7 @@ class GPTService(BaseService):
         # general
         GPTService._ENABLED = openai_configs.getboolean('enabled')
         GPTService._API_KEY = openai_configs['api_key']
-        # TODO: concat path with ${root_path}/services/${cache_folder}
-        GPTService._CACHE_FOLDER = openai_configs['cache_folder']
+        GPTService._CACHE_FOLDER = f"{root_dir}/services/{openai_configs['cache_folder']}"
         os.makedirs(GPTService._CACHE_FOLDER, exist_ok=True)
 
         # chat function
@@ -50,6 +49,7 @@ class GPTService(BaseService):
         # image function
         GPTService._IMAGE_ENABLED = openai_configs.getboolean('image_enabled')
 
+    # pylint: disable=too-many-branches
     @staticmethod
     def process_query(query: List[str], user_id: str) -> str:
         """
@@ -94,7 +94,7 @@ class GPTService(BaseService):
             os.makedirs(f'{GPTService._CACHE_FOLDER}/{user_id}', exist_ok=True)
             cache_file = f'{GPTService._CACHE_FOLDER}/{user_id}/temp.json'
             try:
-                with open(cache_file, 'r') as f:
+                with open(cache_file, 'r', encoding='utf-8') as f:
                     chat_history = json.load(f)
             except FileNotFoundError:
                 chat_history = []
@@ -112,7 +112,7 @@ class GPTService(BaseService):
             # add the response to the chat history
             chat_history.append(response.choices[0].message)
             # save the chat history to the cache file
-            with open(cache_file, 'w') as f:
+            with open(cache_file, 'w', encoding='utf-8') as f:
                 json.dump(chat_history, f)
             # return the response
             return response.choices[0].message.content
@@ -159,22 +159,26 @@ class GPTService(BaseService):
 
     @staticmethod
     def get_help() -> str:
-        return f'**GPTService is a service that uses ChatGPT-3.5 API provided by OpenAI to generate text.**\n' \
-               f'[Usage]\n' \
-               f'- `chat <message>`: send <message> to GPT, and get the response.\n' \
-               f'- `chathistory` or `chathist`: list the history chats with GPT.\n' \
-               f'- `chatload <history no>`: continue the corresponding history chat, <history no> can be ' \
-               f'obtained by `chathistory`. *Notice that current chat session will be discarded.*\n' \
-               f'- `chatsave <name>`: Quit current GPT session, and **save** chats history with given name.\n' \
-               f'- `chatdiscard`: (Encouraged) Quit current GPT session, and **discard** chats history.\n' \
-               f'[Example]\n' \
-               f'- chat who are you\n'
+        return '**GPTService is a service that uses ChatGPT-3.5 API provided by OpenAI to generate text.** \n ' \
+               '**[Basic Usage]** \n ' \
+               '- `chat <message>`: send <message> to GPT, and get the response.\n' \
+               '**[Manipulate history]** \n ' \
+               '- `chathistory` or `chathist`: list the history chats with GPT.\n' \
+               '- `chatload <history no>`: continue the corresponding history chat, <history no> can be ' \
+               'obtained by `chathistory`. *Notice that current chat session will be discarded.*\n' \
+               '- `chatdelete <history no>`: delete the given chat history.\n' \
+               '**[Manipulate current session]** \n ' \
+               '- `chatsave <name>`: Quit current GPT session, and **save** chats history with given name.\n' \
+               '- `chatdiscard`: (Encouraged) Quit current GPT session, and **discard** current chat content. ' \
+               'However, if you want to delete a chat history, you need to use `chatdelete <history no>`. \n ' \
+               '**[Example]** \n ' \
+               '- chat who are you\n'
 
 
 if __name__ == '__main__':
-    configs = configparser.ConfigParser()
-    configs.read('./config.ini')
-    GPTService.load_config(configs)
+    config_parser = configparser.ConfigParser()
+    config_parser.read('./config.ini')
+    GPTService.load_config(config_parser)
     print(GPTService.process_query(['chat'], 'test'))
     print(GPTService.process_query(['chat', 'help'], 'test'))
     print(GPTService.process_query(['chat', 'who', 'am', 'i'], 'test'))

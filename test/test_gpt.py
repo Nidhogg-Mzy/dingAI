@@ -2,6 +2,7 @@ import unittest
 import configparser
 from services.gpt import GPTService
 
+# pylint: disable=protected-access
 class GPTTests(unittest.TestCase):
 
     def setUp(self) -> None:
