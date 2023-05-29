@@ -66,13 +66,12 @@ class GPTService(BaseService):
             return '[Error] not initialized before query, please contact the administrator.'
         # validate query
         if len(query) == 0:
-            raise ValueError(f'Invalid query: query length is 0, but is passed into GPTService')
-        if query[0] not in ['chat', 'chathistory', 'chathist', 'chatload', 'chatsave', 'chatdiscard', 'image']:
+            raise ValueError('Invalid query: query length is 0, but is passed into GPTService')
+        if query[0] not in ['chat', 'chathistory', 'chathist', 'chatload', 'chatsave', 'chatdiscard', 'chatdelete',
+                            'image']:
             raise ValueError(f'Invalid query: query[0] = "{query[0]}", but is passed into GPTService')
-        # if user only pass in func name, but no prompt, return help message
-        if len(query) == 1:
-            return f'[Error] Your query is not complete.\n\n{GPTService.get_help()}'
-        if query[1] == 'help':
+        # help query
+        if len(query) > 1 and query[1] == 'help':
             return GPTService.get_help()
 
         # check if the service is enabled
@@ -89,6 +88,9 @@ class GPTService(BaseService):
 
         # chat function #
         if query[0] == 'chat':
+            # if user only pass in func name, but no prompt, return help message
+            if len(query) == 1:
+                return f'[Error] Your query is not complete.\n\n{GPTService.get_help()}'
             # always write to temp file, then depending on whether user save or discard it,
             # either rename to a meaningful name provided by user, or delete it
             os.makedirs(f'{GPTService._CACHE_FOLDER}/{user_id}', exist_ok=True)
