@@ -1,22 +1,28 @@
 import email
 import imaplib
 import configparser
-
-username = 'XXXXXXXXX'
-password = 'askdjf'
-imap_url = 'imap.gmail.com'
+from datetime import datetime, timedelta
+from services.base_shceduled_service import BaseScheduledService
 
 
-def open_connection():
-    # config = configparser.ConfigParser()
-    # config.read('../config.ini')
-    # print(f"username: {config.get('medium', 'username')}, password: {config.get('medium', 'password')}, imap_url: {config.get('medium', 'imap_url')}")
-    # connection = imaplib.IMAP4_SSL(config.get('medium', 'imap_url'))
-    # connection.login(config.get('medium', 'username'), config.get('medium', 'password'))
-    connection = imaplib.IMAP4_SSL(imap_url)
-    connection.login(username, password)
-    connection.select('Inbox')
-    return connection
+class medium_service(BaseScheduledService):
+    @staticmethod
+    def scheduler(repeat: bool, cycle=None, start=None, end=None):
+        super().scheduler(repeat)
+
+    @staticmethod
+    def get_help() -> str:
+        return ''
+
+    @staticmethod
+    def open_connection():
+        config = configparser.ConfigParser()
+        config.read('config.ini')
+        print(f"username: {config.get('medium', 'username')}, password: {config.get('medium', 'password')}, imap_url: {config.get('medium', 'imap_url')}")
+        connection = imaplib.IMAP4_SSL(config.get('medium', 'imap_url'))
+        connection.login(config.get('medium', 'username'), config.get('medium', 'password'))
+        connection.select('Inbox')
+        return connection
 
 
 # Uncomment this to see what actually comes as data
@@ -27,7 +33,7 @@ if __name__ == '__main__':
     to_date = '26-May-2023'  # Use the next day to include all emails from May 25
     sender = 'noreply@medium.com'
     search_query = f'(SINCE "{from_date}" BEFORE "{to_date}") FROM "{sender}"'
-    imap_server = open_connection()
+    imap_server = medium_service.open_connection()
     status, message_ids = imap_server.search(None, search_query)
     for message_id in message_ids[0].split():
         status, email_data = imap_server.fetch(message_id, '(RFC822)')

@@ -3,6 +3,7 @@ import hashlib
 import hmac
 import json
 import random
+import configparser
 from flask import Flask, jsonify, make_response, request
 from services import SERVICES_MAP
 from services.gpt import GPTService
@@ -16,6 +17,8 @@ class Receive:
                  '我在想，用多少度的水泡你比较合适', '你看不出来吗，我在等你找我啊']
     app = Flask(__name__)
     filename = 'config.ini'
+    configs = configparser.ConfigParser()
+    configs.read('config.ini')
     """
 
     """
@@ -134,6 +137,7 @@ class Receive:
         else:
             try:
                 service = SERVICES_MAP[message_parts[0]]
+                service.load_config(Receive.configs)
                 return_msg = Receive.parse_msg(msgtype='markdown', userId=userId,
                                                msg=service.process_query(message_parts, {'user_id': userId}))
             except KeyError:
