@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import List
 
 class BaseService:
     """
@@ -13,6 +13,8 @@ class BaseService:
         any query, and should guarantee to be executed only once, no matter how many times it's called.
 
         :param configs: a dict, the complete configs loaded from config.ini
+
+        :raises ValueError: if the config is invalid, which indicates a program bug.
         """
 
     @staticmethod

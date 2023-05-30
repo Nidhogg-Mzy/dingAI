@@ -2,9 +2,8 @@ import configparser
 import json
 import os
 import re
+import requests
 from typing import List, Iterable
-
-import openai
 
 from .base_service import BaseService
 
@@ -22,6 +21,7 @@ class GPTService(BaseService):
     _API_KEY = None
     _CACHE_FOLDER = None
     _CHAT_ENABLED = None
+    _CHAT_ENDPOINT = None
     _CHAT_MODEL = None
     _MAX_TOKEN = None
     _IMAGE_ENABLED = None
@@ -43,8 +43,12 @@ class GPTService(BaseService):
 
         # chat function
         GPTService._CHAT_ENABLED = openai_configs.getboolean('chat_enabled')
+        GPTService._CHAT_ENDPOINT = openai_configs['chat_endpoint']
         GPTService._CHAT_MODEL = openai_configs['chat_model']
-        GPTService._MAX_TOKEN = openai_configs['max_tokens']
+        try:
+            GPTService._MAX_TOKEN = int(openai_configs['max_tokens'])
+        except ValueError:
+            raise ValueError('Invalid max_tokens in config.ini, must be an integer')
 
         # image function
         GPTService._IMAGE_ENABLED = openai_configs.getboolean('image_enabled')
@@ -83,9 +87,6 @@ class GPTService(BaseService):
         if query[0] == 'image' and not GPTService._IMAGE_ENABLED:
             return '[Error] Image function is not enabled. Please contact the administrator.'
 
-        # initialize OpenAI API
-        openai.api_key = GPTService._API_KEY
-
         # chat function #
         if query[0] == 'chat':
             # if user only pass in func name, but no prompt, return help message
@@ -105,19 +106,26 @@ class GPTService(BaseService):
             prompt = ' '.join(query[1:])
             chat_history.append({"role": "user", "content": prompt})
 
-            # call OpenAI API to generate a response
-            response = openai.ChatCompletion.create(
-                model=GPTService._CHAT_MODEL,
-                messages=chat_history,
-                max_tokens=int(GPTService._MAX_TOKEN)
-            )
+            # call API to generate a response
+            headers = {
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {GPTService._API_KEY}"
+            }
+            data = {
+                "model": GPTService._CHAT_MODEL,
+                "messages": chat_history,
+                "max_tokens": GPTService._MAX_TOKEN
+            }
+            response = requests.post(GPTService._CHAT_ENDPOINT, headers=headers, json=data)
+            response = json.loads(response.content.decode("utf-8"))
+
             # add the response to the chat history
-            chat_history.append(response.choices[0].message)
+            chat_history.append(response['choices'][0]['message'])
             # save the chat history to the cache file
             with open(cache_file, 'w', encoding='utf-8') as f:
                 json.dump(chat_history, f)
             # return the response
-            return response.choices[0].message.content
+            return response['choices'][0]['message']['content']
         elif query[0] in ['chathistory', 'chathist']:
             # list histories we have
             user_folder = f'{GPTService._CACHE_FOLDER}/{user_id}'
