@@ -70,6 +70,110 @@ class GPTTests(unittest.TestCase):
         self.assertGreater(len(resp), 0)
         self.assertFalse('Arlington' in resp, 'GPT should NOT have memory to answer this question')
 
+    def test_chat_save(self):
+        resp = GPTService.process_query(['chat', 'Who', 'won', 'the', 'world', 'series', 'in', '2020?'], 'test1')
+        self.assertGreater(len(resp), 0)
+        self.assertTrue('Los Angeles Dodgers' in resp)
+
+        # save the current chat
+        resp = GPTService.process_query(['chatsave'], 'test1')
+        self.assertTrue('Error' in resp)  # invalid syntax, chatsave should provide a name
+        resp = GPTService.process_query(['chatsave', 'testsave'], 'test1')
+        self.assertTrue('Successfully saved current chat history' in resp)
+        self.assertTrue('1. testsave' in resp)
+
+        # now the current chat should be saved in the cache folder
+        saved_hist = f'{GPTService._CACHE_FOLDER}/test1/1-testsave.json'
+        self.assertTrue(os.path.exists(saved_hist), 'Saved a chat, but 1-testsave.json does not exist.')
+        # also check its content
+        with open(saved_hist, 'r', encoding='utf-8') as f:
+            saved_hist = f.read()
+        self.assertTrue('Los Angeles Dodgers' in saved_hist)
+        self.assertFalse('Arlington' in saved_hist)
+
+    def test_chat_save_hist_load_delete(self):
+        # check stored history when there is no saved chat
+        resp = GPTService.process_query(['chathist'], 'test1')
+        self.assertTrue('Your chat histories:' in resp)
+        self.assertFalse('1.' in resp, 'There should be no saved chat history yet')
+
+        _ = GPTService.process_query(['chat', 'Who', 'won', 'the', 'world', 'series', 'in', '2020?'], 'test1')
+        _ = GPTService.process_query(['chatsave', 'testsave'], 'test1')
+
+        # check stored history
+        resp = GPTService.process_query(['chathist'], 'test1')
+        self.assertTrue('Your chat histories:' in resp)
+        self.assertTrue('1. testsave' in resp)
+
+        # load the saved chat
+        # some invalid queries
+        resp = GPTService.process_query(['chatload'], 'test1')
+        self.assertTrue('Error' in resp)  # invalid syntax, chatload should provide a name
+        resp = GPTService.process_query(['chatload', 'testsave'], 'test1')
+        self.assertTrue('Error' in resp)  # invalid syntax, chatload should provide number
+        resp = GPTService.process_query(['chatload', '2'], 'test1')
+        self.assertTrue('Error' in resp)  # invalid number provided
+        # valid query
+        resp = GPTService.process_query(['chatload', '1'], 'test1')
+        self.assertTrue('History 1 loaded successfully' in resp)
+        self.assertTrue('Los Angeles Dodgers' in resp, 'chatload should display the last response')
+
+        # once we load memory, gpt should be able to answer this
+        resp = GPTService.process_query(['chat', 'Where', 'was', 'it', 'played?'], 'test1')
+        self.assertTrue('Arlington' in resp, 'GPT should have memory to answer this question')
+
+        # now try to save another chat
+        resp = GPTService.process_query(['chat', 'Who', 'invented', 'Java', 'language'], 'test1')
+        self.assertTrue('James Gosling' in resp)
+        resp = GPTService.process_query(['chatsave', 'testjava'], 'test1')
+        self.assertTrue('2. testjava' in resp)
+
+        # check stored history
+        resp = GPTService.process_query(['chathist'], 'test1')
+        self.assertTrue('Your chat histories:' in resp)
+        self.assertTrue('1. testsave' in resp)
+        self.assertTrue('2. testjava' in resp)
+
+        # load the saved chat
+        resp = GPTService.process_query(['chatload', '2'], 'test1')
+        self.assertTrue('History 2 loaded successfully' in resp)
+        self.assertTrue('James Gosling' in resp, 'chatload should display the last response')
+
+        # delete the saved chat
+        resp = GPTService.process_query(['chatdelete'], 'test1')
+        self.assertTrue('Error' in resp)  # invalid syntax, chatdelete should provide a name
+        resp = GPTService.process_query(['chatdelete', 'testsave'], 'test1')
+        self.assertTrue('Error' in resp)  # invalid syntax, chatdelete should provide an integer
+        resp = GPTService.process_query(['chatdelete', '1'], 'test1')
+        self.assertTrue('Successfully deleted history 1' in resp)
+
+        # check stored history
+        resp = GPTService.process_query(['chathist'], 'test1')
+        self.assertTrue('Your chat histories:' in resp)
+        self.assertFalse('1. testsave' in resp, 'History 1 should be deleted')
+        self.assertTrue('1. testjava' in resp, 'History 2 should be renamed to 1.')
+
+        # try load new 1st chat
+        resp = GPTService.process_query(['chatload', '1'], 'test1')
+        self.assertTrue('History 1 loaded successfully' in resp)
+        self.assertFalse('Los Angeles Dodgers' in resp, 'chatload loads the wrong chat.')
+        self.assertTrue('James Gosling' in resp, 'chatload should display the last response.')
+
+        # then also delete it
+        resp = GPTService.process_query(['chatdelete', '1'], 'test1')
+        self.assertTrue('Successfully deleted history 1' in resp)
+        resp = GPTService.process_query(['chathist'], 'test1')
+        self.assertTrue('Your chat histories:' in resp)
+        self.assertFalse('1. testsave' in resp, 'History 1 should be deleted')
+        self.assertFalse('2. testjava' in resp, 'History 2 should be deleted')
+        self.assertFalse('1. testjava' in resp, 'New history 1 should be deleted')
+
+    def test_chat_save_mult_times(self):
+        self.skipTest('Not Implemented.')
+
+    def test_chat_mult_user(self):
+        self.skipTest('Not Implemented.')
+
 
 if __name__ == '__main__':
     unittest.main()

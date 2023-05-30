@@ -129,35 +129,122 @@ class GPTService(BaseService):
         elif query[0] in ['chathistory', 'chathist']:
             # list histories we have
             user_folder = f'{GPTService._CACHE_FOLDER}/{user_id}'
-            os.makedirs(user_folder, exist_ok=True)     # in case user didn't have a folder
+            os.makedirs(user_folder, exist_ok=True)  # in case user didn't have a folder
             all_files = os.listdir(user_folder)
-            # TODO: use regex to filter all files in format (%d+)-(.*).json
-            history_files = filter(lambda x: True, all_files)
+            # use regex to filter all files in format (%d+)-(.*).json
+            pattern = re.compile(r"(\d+)-(.*)\.json")
+            history_files: Iterable[str] = filter(pattern.match, all_files)
+
+            hist_list = "Your chat histories:\n"
+            for history_file in history_files:
+                num, name = pattern.match(history_file).group(1), pattern.match(history_file).group(2)
+                # Markdown ordered list style
+                hist_list += f'{num}. {name}\n'
+
+            hist_list += "\nTo load a history, use `chatload <history number>`"
+            return hist_list
 
         elif query[0] == 'chatload':
             # load specific chat to temp.json
             # don't touch original chat history unless user save it
             if len(query) < 2:
                 return '[Error] You need to specify history number to load a chat history'
+
             history_no = query[1]
+            try:
+                history_no = int(history_no)
+            except ValueError:
+                return '[Error] History no needs to be an integer number. If you think this is an error, ' \
+                       'please contact administrator. '
+
             user_folder = f'{GPTService._CACHE_FOLDER}/{user_id}'
             os.makedirs(user_folder, exist_ok=True)  # in case user didn't have a folder
             all_files = os.listdir(user_folder)
-            # TODO: use regex to find history in format ${history_no}-(.*).json
-            history_file = None
-            if history_file is None:
+            # use regex to find history in format ${history_no}-(.*).json
+            pattern = re.compile(rf"{history_no}-(.*)\.json")
+            history_files: List[str] = list(filter(pattern.match, all_files))
+            if len(history_files) == 0:
                 return '[Error] History no is not valid. If you think this is an error, please contact administrator.'
+            if len(history_files) > 1:
+                return '[Error] Multiple history files found. This is likely to be a software bug, please contact ' \
+                       'administrator. '
+
             # history file found! load into temp.json
-            with open(history_file, 'r') as f:
+            history_file = history_files[0]
+            with open(f'{user_folder}/{history_file}', 'r', encoding='utf-8') as f:
                 history_content = f.read()
-            with open(f'{user_folder}/temp.json', 'w+') as f:
+            with open(f'{user_folder}/temp.json', 'w+', encoding='utf-8') as f:
                 f.write(history_content)
-            # TODO: prompt success, and display last query and answer
-            raise NotImplementedError()
+            # prompt success, and display last query and answer
+            last_query = json.loads(history_content)[-1]['content']
+            to_return = f'History {history_no} loaded successfully. The last message was: \n' \
+                        f'**>** {last_query}\n'
+
+            return to_return
+
+        elif query[0] == 'chatdelete':
+            if len(query) < 2:
+                return '[Error] You need to specify history number to delete a chat history'
+
+            history_no = query[1]
+            try:
+                history_no = int(history_no)
+            except ValueError:
+                return '[Error] History no needs to be an integer number. If you think this is an error, ' \
+                       'please contact administrator. '
+
+            user_folder = f'{GPTService._CACHE_FOLDER}/{user_id}'
+            os.makedirs(user_folder, exist_ok=True)  # in case user didn't have a folder
+            all_files = os.listdir(user_folder)
+            file_to_delete: list[str] = list(filter(lambda x: x.startswith(f'{history_no}-'), all_files))
+            if len(file_to_delete) == 0:
+                return f'[Error] Cannot find history with no {history_no}. If you think this is an error, please ' \
+                       f'contact administrator. '
+            if len(file_to_delete) > 1:
+                return '[Error] Multiple history files found. This is likely to be a software bug, please contact ' \
+                       'administrator. '
+
+            # delete the file
+            os.remove(f'{user_folder}/{file_to_delete[0]}')
+
+            # for remaining histories, rename them with new history no
+            for file in all_files:
+                # use regex to extract history no
+                pattern = re.compile(r"(\d+)-(.*)\.json")
+                if pattern.match(file) is None:
+                    continue
+                old_history_no = pattern.match(file).group(1)
+                if int(old_history_no) > history_no:
+                    new_history_no = int(old_history_no) - 1
+                    os.rename(f'{user_folder}/{file}',
+                              f'{user_folder}/{new_history_no}-{pattern.match(file).group(2)}.json')
+
+            return f'Successfully deleted history {history_no}.'
 
         elif query[0] == 'chatsave':
-            # TODO: implement this
-            raise NotImplementedError()
+            if len(query) < 2:
+                return '[Error] You need to specify a name to save this chat history'
+
+            # we need to find out the last history no
+            user_folder = f'{GPTService._CACHE_FOLDER}/{user_id}'
+            os.makedirs(user_folder, exist_ok=True)  # in case user didn't have a folder
+            all_files = os.listdir(user_folder)
+            pattern = re.compile(r"(\d+)-(.*)\.json")
+            history_files: Iterable[str] = filter(pattern.match, all_files)
+
+            next_no = 1     # the next available history no
+
+            for history_file in history_files:
+                num = pattern.match(history_file).group(1)
+                next_no = max(next_no, int(num) + 1)
+
+            # save the current chat history
+            with open(f'{user_folder}/{next_no}-{query[1]}.json', 'w+', encoding='utf-8') as f:
+                with open(f'{user_folder}/temp.json', 'r', encoding='utf-8') as temp:
+                    f.write(temp.read())
+
+            return f'Successfully saved current chat history as **{next_no}. {query[1]}**.' \
+                   'You can view all your chat histories using `chathistory`.'
 
         elif query[0] == 'chatdiscard':
             cache_file = f'{GPTService._CACHE_FOLDER}/{user_id}/temp.json'
@@ -169,7 +256,7 @@ class GPTService(BaseService):
 
         # image function #
         # TODO: implement image function
-        raise NotImplementedError(f'Image function is not implemented yet')
+        raise NotImplementedError('Image function is not implemented yet')
 
     @staticmethod
     def get_help() -> str:
