@@ -29,9 +29,6 @@ class MediumService(BaseScheduledService):
         MediumService.username = configs.get('medium', 'username')
         MediumService.password = configs.get('medium', 'password')
         MediumService.imap_url = configs.get('medium', 'imap_url')
-        print(
-            f"username when init: {MediumService.username}, password when init: {MediumService.password}, "
-            f"imap_url when init: {MediumService.imap_url}")
 
     @staticmethod
     def start_scheduler(repeat: bool, start_time: str, end_time=None, cycle=None):
@@ -44,7 +41,7 @@ class MediumService(BaseScheduledService):
         if MediumService.scheduler is None:
             MediumService.scheduler = BlockingScheduler()
 
-        cycle_interval = 10  # Cycle interval in seconds
+        cycle_interval = cycle * 24 * 60 * 60  # Cycle interval in seconds
 
         # Schedule the task to run repeatedly
         if end_time is not None:
@@ -91,7 +88,6 @@ class MediumService(BaseScheduledService):
             for i, article_div in enumerate(article_divs):
                 image_div = article_div.select(
                     '[style^="width: 100%; float: left; height: 214px; margin-bottom: 16px;"]')
-                print(image_div)
                 if not len(image_div) == 0:
                     match = re.search(r'url\((.*?)\)', image_div[0]['style'])
                     if match:
@@ -108,7 +104,7 @@ class MediumService(BaseScheduledService):
                 links.append(link)
         imap_server.close()
         imap_server.logout()
-        # MediumService.send_msg(titles, links, image_urls)
+        MediumService.send_msg(titles, links, image_urls)
 
     @staticmethod
     def get_help() -> str:
@@ -116,9 +112,6 @@ class MediumService(BaseScheduledService):
 
     @staticmethod
     def open_connection():
-        print(
-            f"username when running service: {MediumService.username}, password when running service: {MediumService.password}, "
-            f"imap_url when running service: {MediumService.imap_url}")
         connection = imaplib.IMAP4_SSL(MediumService.imap_url)
         connection.login(MediumService.username, MediumService.password)
         connection.select('Inbox')
