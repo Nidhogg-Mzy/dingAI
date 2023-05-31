@@ -95,14 +95,14 @@ class Receive:
         return data
 
     @staticmethod
-    def send_feedcard_msg(titles: list, message_urls: list):
+    def send_feedcard_msg(titles: list, message_urls: list, image_urls: list):
         result = []
         headers = {'Content-Type': 'application/json'}
-        for title, message_url in zip(titles, message_urls):
+        for title, message_url, image_url in zip(titles, message_urls, image_urls):
             item = {
                 "title": title,
                 "messageURL": message_url,
-                "picURL": ''
+                "picURL": image_url
             }
             result.append(item)
 
