@@ -7,6 +7,8 @@ import configparser
 import requests
 from flask import Flask, jsonify, make_response, request
 from services import SERVICES_MAP
+from services.medium_daily_push import MediumService
+import threading
 
 
 class Receive:
@@ -120,8 +122,6 @@ class Receive:
         body = json.loads(request.data.decode('utf-8'))
         parsed_msg = Receive.parse_body(body)
         return parsed_msg
-        # Get the request headers
-        # Return the headers and body as a JSON object
 
     @staticmethod
     def parse_body(body) -> dict:
@@ -163,4 +163,13 @@ class Receive:
 
 
 if __name__ == '__main__':
-    Receive.app.run('0.0.0.0', 60001)
+    medium_thread = threading.Thread(target=lambda: (
+        MediumService.init_service(Receive.send_feedcard_msg, Receive.configs),
+        print('medium service initialized'),
+        MediumService.start_scheduler(repeat=True, start_time='2023-5-31', end_time='2100-1-1', cycle=1)
+    ))
+    receive_thread = threading.Thread(target=lambda: Receive.app.run('0.0.0.0', 60001))
+    medium_thread.start()
+    receive_thread.start()
+    medium_thread.join()
+    receive_thread.join()
