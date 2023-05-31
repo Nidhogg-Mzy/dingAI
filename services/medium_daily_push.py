@@ -1,55 +1,61 @@
-import argparse
-import configparser
 import datetime
 import email
 import imaplib
 from datetime import datetime, timedelta, time
-from typing import List
+from typing import List, Optional, Callable
 from apscheduler.schedulers.blocking import BlockingScheduler
 from bs4 import BeautifulSoup
-
-import dingtalk_receive
 from services.base_shceduled_service import BaseScheduledService
 
 
 class MediumService(BaseScheduledService):
+    scheduler = None
     sender = 'noreply@medium.com'
-    parser = argparse.ArgumentParser()
-
-    parser.add_argument('--repeat', type=bool, help='specify if the task is repeating')
-    parser.add_argument('--cycle', type=str, default=1, help='the cycle of the service, in days')
-    parser.add_argument('--start', type=str, help='when should the service start')
-    parser.add_argument('--end', type=str, default=None, help='when should the service end')
-    args = parser.parse_args()
+    send_msg = Optional[Callable[[List[str], List[str]], None]]
+    username = Optional[str]
+    password = Optional[str]
+    imap_url = Optional[str]
 
     @staticmethod
     def process_query(query: List[str], user_id: str) -> str:
         return ''
 
     @staticmethod
-    def scheduler():
+    def init_service(func_send_feedcard, configs):
+        MediumService.send_msg = func_send_feedcard
+        print(configs)
+        MediumService.username = configs.get('medium', 'username')
+        MediumService.password = configs.get('medium', 'password')
+        MediumService.imap_url = configs.get('medium', 'imap_url')
+        print(
+            f"username when init: {MediumService.username}, password when init: {MediumService.password}, "
+            f"imap_url when init: {MediumService.imap_url}")
+
+    @staticmethod
+    def start_scheduler(repeat: bool, start_time: str, end_time=None, cycle=None):
         # Create a scheduler
         date_format = "%Y-%m-%d"
-        start = datetime.now().date()
-        start_date = datetime.strptime(MediumService.args.start, date_format).date()
-        if start_date < datetime.now().date():
-            start = datetime.now().date() if start_date < datetime.now().date() else start_date
+        start_date = datetime.strptime(start_time, date_format).date()
+        start = datetime.now().date() if start_date < datetime.now().date() else start_date
         default_time = time(8, 0, 0)
         combined_datetime = datetime.combine(start, default_time)
-        scheduler = BlockingScheduler()
+        if MediumService.scheduler is None:
+            MediumService.scheduler = BlockingScheduler()
 
         cycle_interval = 10  # Cycle interval in seconds
 
         # Schedule the task to run repeatedly
-        if MediumService.args.end is not None:
-            scheduler.add_job(MediumService.task, 'interval', seconds=cycle_interval, start_date=combined_datetime,
-                              end_date=datetime.combine(datetime.strptime(MediumService.args.end, date_format).date(),
-                                                        default_time))
+        if end_time is not None:
+            MediumService.scheduler.add_job(MediumService.task, 'interval', seconds=cycle_interval,
+                                            start_date=combined_datetime,
+                                            end_date=datetime.combine(datetime.strptime(end_time, date_format).date(),
+                                                                      default_time))
         else:
-            scheduler.add_job(MediumService.task, 'interval', seconds=cycle_interval, start_date=start)
+            MediumService.scheduler.add_job(MediumService.task, 'interval', seconds=cycle_interval, start_date=start)
 
-        # Start the scheduler
-        scheduler.start()
+        # Start the scheduler if it is not already running
+        if not MediumService.scheduler.running:
+            MediumService.scheduler.start()
 
     @staticmethod
     def task():
@@ -90,7 +96,7 @@ class MediumService(BaseScheduledService):
         imap_server.logout()
         print(f"titles: {titles}")
         print(f"links: {links}")
-        dingtalk_receive.Receive.send_feedcard_msg(titles, links)
+        MediumService.send_msg(titles, links)
 
     @staticmethod
     def get_help() -> str:
@@ -98,17 +104,10 @@ class MediumService(BaseScheduledService):
 
     @staticmethod
     def open_connection():
-        config = configparser.ConfigParser()
-        config.read('../config.ini')
-        print(f"username: {config.get('medium', 'username')}, password: {config.get('medium', 'password')}, "
-              f"imap_url: {config.get('medium', 'imap_url')}")
-        connection = imaplib.IMAP4_SSL(config.get('medium', 'imap_url'))
-        connection.login(config.get('medium', 'username'), config.get('medium', 'password'))
+        print(
+            f"username when running service: {MediumService.username}, password when running service: {MediumService.password}, "
+            f"imap_url when running service: {MediumService.imap_url}")
+        connection = imaplib.IMAP4_SSL(MediumService.imap_url)
+        connection.login(MediumService.username, MediumService.password)
         connection.select('Inbox')
         return connection
-
-
-# Uncomment this to see what actually comes as data
-# print(msgs)
-if __name__ == '__main__':
-    MediumService.scheduler()
