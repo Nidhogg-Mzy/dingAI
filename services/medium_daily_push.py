@@ -1,6 +1,8 @@
 import datetime
 import email
 import imaplib
+import configparser
+import re
 from datetime import datetime, timedelta, time
 from typing import List, Optional, Callable
 from apscheduler.schedulers.blocking import BlockingScheduler
@@ -12,9 +14,9 @@ class MediumService(BaseScheduledService):
     scheduler = None
     sender = 'noreply@medium.com'
     send_msg = Optional[Callable[[List[str], List[str]], None]]
-    username = Optional[str]
-    password = Optional[str]
-    imap_url = Optional[str]
+    username = None
+    password = None
+    imap_url = None
 
     @staticmethod
     def process_query(query: List[str], user_id: str) -> str:
@@ -67,6 +69,7 @@ class MediumService(BaseScheduledService):
         search_query = f'(SINCE "{from_date}" BEFORE "{to_date}") FROM "{MediumService.sender}"'
         imap_server = MediumService.open_connection()
         _, message_ids = imap_server.search(None, search_query)
+        image_urls = []
         titles = []
         links = []
         for message_id in message_ids[0].split():
@@ -83,20 +86,29 @@ class MediumService(BaseScheduledService):
             # Process the extracted information as needed
             # Iterate over the parts of the email
             soup = BeautifulSoup(body, 'html.parser')
-            article_divs = soup.find_all('div', attrs={'style': 'display: inline-block; margin-left: 0px;'})
-            for article_div in article_divs:
-                title_div = article_div.find('div', attrs={'style': 'margin-bottom: 8px;'})
+            article_divs = soup.find_all('div',
+                                         attrs={'style': 'overflow: hidden; margin-bottom: 20px; margin-top: 20px;'})
+            for i, article_div in enumerate(article_divs):
+                image_div = article_div.select(
+                    '[style^="width: 100%; float: left; height: 214px; margin-bottom: 16px;"]')
+                print(image_div)
+                if not len(image_div) == 0:
+                    match = re.search(r'url\((.*?)\)', image_div[0]['style'])
+                    if match:
+                        image_urls.append(match.group(1))
+                    else:
+                        image_urls.append('')
+                else:
+                    image_urls.append('')
+                title_div = article_div.find('div', attrs={'style': 'display: inline-block; margin-left: 0px;'})
+                title_div = title_div.find('div', attrs={'style': 'margin-bottom: 8px;'})
                 title = title_div.find('b').text
-                # subtitle = article_div.find('div', attrs={
-                #     'style': 'font-weight: 400; color: rgba(41, 41, 41, 1); line-height: 28px; font-size: 20px;'}).text
                 link = article_div.find('a')['href']
                 titles.append(title)
                 links.append(link)
         imap_server.close()
         imap_server.logout()
-        print(f"titles: {titles}")
-        print(f"links: {links}")
-        MediumService.send_msg(titles, links)
+        # MediumService.send_msg(titles, links, image_urls)
 
     @staticmethod
     def get_help() -> str:
@@ -111,3 +123,10 @@ class MediumService(BaseScheduledService):
         connection.login(MediumService.username, MediumService.password)
         connection.select('Inbox')
         return connection
+
+
+if __name__ == '__main__':
+    config = configparser.ConfigParser()
+    config.read('../config.ini')
+    MediumService.init_service(MediumService.get_help, config)
+    MediumService.task()
