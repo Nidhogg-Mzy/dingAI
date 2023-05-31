@@ -8,6 +8,11 @@ class BaseScheduledService:
     """
 
     @staticmethod
+    def init_service(func_send, configs) -> None:
+        """
+        takes in the specific send_msg function in receive class and extract info from configs
+        """
+    @staticmethod
     def process_query(query: List[str], user_id: str) -> str:
         """
         Processes the query that user passed in, and return a reply.
