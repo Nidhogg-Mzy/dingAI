@@ -4,9 +4,9 @@ import hmac
 import json
 import random
 import configparser
+import requests
 from flask import Flask, jsonify, make_response, request
 from services import SERVICES_MAP
-from services.gpt import GPTService
 
 
 class Receive:
@@ -19,9 +19,6 @@ class Receive:
     filename = 'config.ini'
     configs = configparser.ConfigParser()
     configs.read('config.ini')
-    """
-
-    """
 
     @staticmethod
     def verify_sign(header: dict) -> bool:
@@ -39,14 +36,14 @@ class Receive:
         timestamp = header['timestamp']
         app_secret = 'this is a secret'
         app_secret_enc = app_secret.encode('utf-8')
-        string_to_sign = '{}\n{}'.format(timestamp, app_secret)
+        string_to_sign = f'{timestamp}\n{app_secret}'
         string_to_sign_enc = string_to_sign.encode('utf-8')
         hmac_code = hmac.new(app_secret_enc, string_to_sign_enc, digestmod=hashlib.sha256).digest()
         sign = base64.b64encode(hmac_code).decode('utf-8')
         return sign == header['sign']
 
     @staticmethod
-    def parse_msg(msgtype: str, msg: str, userId: str, isAtAll=False):
+    def parse_msg(msgtype: str, msg: str, user_id: str, is_at_all=False):
         """
         format of text message sent
         {
@@ -66,7 +63,6 @@ class Receive:
         }
         """
         data = {}
-        headers = {'Content-Type': 'application/json'}
         if msgtype == 'text':
             data = {
                 "text": {
@@ -75,9 +71,9 @@ class Receive:
                 "msgtype": msgtype,
                 "at": {
                     "atUserIds": [
-                        userId
+                        user_id
                     ],
-                    "isAtAll": isAtAll
+                    "isAtAll": is_at_all
                 }
             }
         elif msgtype == 'markdown':
@@ -89,18 +85,38 @@ class Receive:
                 },
                 "at": {
                     "atUserIds": [
-                        userId
+                        user_id
                     ],
-                    "isAtAll": isAtAll
+                    "isAtAll": is_at_all
                 }
             }
         return data
-        # url = 'https://oapi.dingtalk.com/robot/send?access_token=6e3b6e9db9f5b1d029615e4ea6fff2b716d77cf89a8adc9449603501bfdf9e0a'
-        # print(requests.post(url, json=data, headers=headers).text)
+
+    @staticmethod
+    def send_feedcard_msg(titles: list, message_urls: list):
+        result = []
+        headers = {'Content-Type': 'application/json'}
+        for title, message_url in zip(titles, message_urls):
+            item = {
+                "title": title,
+                "messageURL": message_url,
+                "picURL": ''
+            }
+            result.append(item)
+
+        # Convert the list of dictionaries to a JSON array
+        links = json.dumps(result)
+        data = {
+            "msgtype": "feedCard",
+            "feedCard": {
+                "links": links
+            }
+        }
+        url = Receive.configs['dingtalk']['url']
+        print(requests.post(url, json=data, headers=headers, timeout=30).text)
 
     @staticmethod
     def rev_msg():  # json or None
-        headers = dict(request.headers)
         body = json.loads(request.data.decode('utf-8'))
         parsed_msg = Receive.parse_body(body)
         return parsed_msg
@@ -122,24 +138,23 @@ class Receive:
         All private/group message processing are done here.
         """
         received = Receive.rev_msg()
-        if received["conversation_type"] == "group":
-            return Receive.rev_group_msg(received)
+        return Receive.handle_reply(received)
 
     @staticmethod
-    def rev_group_msg(received):
-        userId = received['senderId']
+    def handle_reply(received):
+        user_id = received['senderId']
         message_parts = received['msg'].strip().split(' ')
         if len(message_parts) < 1:
-            return_msg = Receive.parse_msg(msgtype='markdown', userId=userId, msg='蛤?')
+            return_msg = Receive.parse_msg(msgtype='markdown', user_id=user_id, msg='蛤?')
         elif message_parts[0] == '在吗':
-            return_msg = Receive.parse_msg(msgtype='markdown', userId=userId,
+            return_msg = Receive.parse_msg(msgtype='markdown', user_id=user_id,
                                            msg=Receive.reply_msg[random.randint(0, len(Receive.reply_msg) - 1)])
         else:
             try:
                 service = SERVICES_MAP[message_parts[0]]
                 service.load_config(Receive.configs)
-                return_msg = Receive.parse_msg(msgtype='markdown', userId=userId,
-                                               msg=service.process_query(message_parts, {'user_id': userId}))
+                return_msg = Receive.parse_msg(msgtype='markdown', user_id=user_id,
+                                               msg=service.process_query(message_parts, user_id))
             except KeyError:
                 return_msg = "We currently do not support this kind of service"
         response = make_response(jsonify(return_msg))
