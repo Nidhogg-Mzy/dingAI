@@ -1,3 +1,6 @@
+from typing import List
+
+
 class BaseScheduledService:
     """
     This class defines basic functions that a scheduled service should implement.
@@ -5,21 +8,23 @@ class BaseScheduledService:
     """
 
     @staticmethod
-    def scheduler(repeat: bool, cycle=None, start=None, end=None):
+    def process_query(query: List[str], user_id: str) -> str:
+        """
+        Processes the query that user passed in, and return a reply.
+
+        :param query: a list of strings that is the query from front-end, an example can be ['ddl', 'today']
+        :param user_id: the account of the user who perform the query.
+        :return: a string that is the result of the query to be displayed to user
+        :raises ValueError: if the query or user_id is invalid, which indicates a program bug.
+        """
+        raise NotImplementedError
+
+    @staticmethod
+    def scheduler():
         """
         create a scheduler for the task.
-
-        :param repeat: if the task is executed repeatedly
-        :param cycle: the repeat cycle of a task. Required only if is a repeat task.
-        :param start: the time to start the task.
-        :param end: the time to end a task.
-        :return: a string that is the result of the query to be displayed to user
-        :raises ValueError: if the query or extra_info is invalid
         """
-        if repeat and (cycle is None or start is None or end is None):
-            return 'Please give the period of the cycle, the start and end date.'
-        if not repeat and start != end:
-            return 'give a specific time point please'
+        raise NotImplementedError
 
     @staticmethod
     def get_help() -> str:
