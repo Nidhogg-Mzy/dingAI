@@ -3,7 +3,7 @@ import json
 import os
 import re
 import requests
-from typing import List, Iterable
+from typing import List, Tuple, Iterable
 
 from .base_service import BaseService
 
@@ -139,14 +139,19 @@ class GPTService(BaseService):
             if len(history_files) == 0:
                 return "You don't have any chat history yet. "
 
-            hist_list = "Your chat histories:\n"
+            hist_list_msg = "Your chat histories:\n"
+            hist_list: List[Tuple[int, str]] = []
             for history_file in history_files:
                 num, name = pattern.match(history_file).group(1), pattern.match(history_file).group(2)
+                hist_list.append((int(num), name))
+            # sort hist_list by num
+            hist_list.sort(key=lambda x: x[0])
+            for num, name in hist_list:
                 # Markdown ordered list style
-                hist_list += f'{num}. {name}\n'
+                hist_list_msg += f'{num}. {name}\n'
 
-            hist_list += "\nTo load a history, use *chatload <history number>*"
-            return hist_list
+            hist_list_msg += "\nTo load a history, use *chatload <history number>*"
+            return hist_list_msg
 
         elif query[0] == 'chatload':
             # load specific chat to temp.json
