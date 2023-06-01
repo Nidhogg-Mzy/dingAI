@@ -94,8 +94,7 @@ class GPTTests(unittest.TestCase):
     def test_chat_save_hist_load_delete(self):
         # check stored history when there is no saved chat
         resp = GPTService.process_query(['chathist'], 'test1')
-        self.assertTrue('Your chat histories:' in resp)
-        self.assertFalse('1.' in resp, 'There should be no saved chat history yet')
+        self.assertTrue('You don\'t have any chat history yet.' in resp, 'There should be no saved chat history yet')
 
         _ = GPTService.process_query(['chat', 'Who', 'won', 'the', 'world', 'series', 'in', '2020?'], 'test1')
         _ = GPTService.process_query(['chatsave', 'testsave'], 'test1')
@@ -163,10 +162,7 @@ class GPTTests(unittest.TestCase):
         resp = GPTService.process_query(['chatdelete', '1'], 'test1')
         self.assertTrue('Successfully deleted history 1' in resp)
         resp = GPTService.process_query(['chathist'], 'test1')
-        self.assertTrue('Your chat histories:' in resp)
-        self.assertFalse('1. testsave' in resp, 'History 1 should be deleted')
-        self.assertFalse('2. testjava' in resp, 'History 2 should be deleted')
-        self.assertFalse('1. testjava' in resp, 'New history 1 should be deleted')
+        self.assertTrue('You don\'t have any chat history yet.' in resp, 'All chat history should be deleted')
 
     def test_chat_save_mult_times(self):
         self.skipTest('Not Implemented.')
