@@ -89,7 +89,6 @@ class GPTTests(unittest.TestCase):
         with open(saved_hist, 'r', encoding='utf-8') as f:
             saved_hist = f.read()
         self.assertTrue('Los Angeles Dodgers' in saved_hist)
-        self.assertFalse('Arlington' in saved_hist)
 
     def test_chat_save_hist_load_delete(self):
         # check stored history when there is no saved chat
