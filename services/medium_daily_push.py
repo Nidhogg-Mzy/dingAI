@@ -1,22 +1,26 @@
 import datetime
 import email
 import imaplib
-import configparser
 import re
-from datetime import datetime, timedelta, time
+import configparser
+from datetime import datetime, timedelta
 from typing import List, Optional, Callable
 from apscheduler.schedulers.blocking import BlockingScheduler
 from bs4 import BeautifulSoup
-from services.base_shceduled_service import BaseScheduledService
+from services.scheduled_base_service import BaseScheduledService
 
 
 class MediumService(BaseScheduledService):
     scheduler = None
     sender = 'noreply@medium.com'
-    send_msg = Optional[Callable[[List[str], List[str]], None]]
-    username = None
-    password = None
-    imap_url = None
+    send_msg = Optional[Callable[[List[str], List[str], List[str]], None]]
+    username: Optional[str] = None
+    password: Optional[str] = None
+    imap_url: Optional[str] = None
+    repeat = None
+    start_time: None
+    cycle: Optional[str] = None
+    end_time: Optional[str] = None
 
     @staticmethod
     def process_query(query: List[str], user_id: str) -> str:
@@ -29,28 +33,26 @@ class MediumService(BaseScheduledService):
         MediumService.username = configs.get('medium', 'username')
         MediumService.password = configs.get('medium', 'password')
         MediumService.imap_url = configs.get('medium', 'imap_url')
+        MediumService.start_time = configs.get('medium', 'start_time')
+        MediumService.repeat = bool(configs.get('medium', 'repeat'))
+        MediumService.cycle = int(configs.get('medium', 'cycle'))
+        MediumService.end_time = configs.get('medium', 'end_time')
 
     @staticmethod
-    def start_scheduler(repeat: bool, start_time: str, end_time=None, cycle=None):
+    def start_scheduler():
         # Create a scheduler
-        date_format = "%Y-%m-%d"
-        start_date = datetime.strptime(start_time, date_format).date()
-        start = datetime.now().date() if start_date < datetime.now().date() else start_date
-        default_time = time(8, 0, 0)
-        combined_datetime = datetime.combine(start, default_time)
+        date_format = "%Y-%m-%d-%H:%M"
+        start_date = datetime.strptime(MediumService.start_time, date_format)
+        start = datetime.now() if start_date < datetime.now() else start_date
+        end = datetime.strptime(MediumService.end_time, date_format)
         if MediumService.scheduler is None:
             MediumService.scheduler = BlockingScheduler()
 
-        cycle_interval = cycle * 24 * 60 * 60  # Cycle interval in seconds
+        cycle_interval = MediumService.cycle * 24 * 60 * 60  # Cycle interval in seconds
 
-        # Schedule the task to run repeatedly
-        if end_time is not None:
-            MediumService.scheduler.add_job(MediumService.task, 'interval', seconds=cycle_interval,
-                                            start_date=combined_datetime,
-                                            end_date=datetime.combine(datetime.strptime(end_time, date_format).date(),
-                                                                      default_time))
-        else:
-            MediumService.scheduler.add_job(MediumService.task, 'interval', seconds=cycle_interval, start_date=start)
+        MediumService.scheduler.add_job(MediumService.task, 'interval', seconds=cycle_interval,
+                                        start_date=start,
+                                        end_date=end)
 
         # Start the scheduler if it is not already running
         if not MediumService.scheduler.running:
