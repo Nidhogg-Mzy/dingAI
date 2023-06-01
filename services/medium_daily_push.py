@@ -12,13 +12,13 @@ from services.scheduled_base_service import BaseScheduledService
 
 class MediumService(BaseScheduledService):
     scheduler = None
-    sender = 'noreply@medium.com'
-    send_msg = Optional[Callable[[List[str], List[str], List[str]], None]]
+    sender = None
+    send_msg: Optional[Callable[[List[str], List[str], List[str]], None]] = None
     username: Optional[str] = None
     password: Optional[str] = None
     imap_url: Optional[str] = None
     repeat = None
-    start_time: None
+    start_time = None
     cycle: Optional[str] = None
     end_time: Optional[str] = None
 
@@ -27,15 +27,21 @@ class MediumService(BaseScheduledService):
         return ''
 
     @staticmethod
-    def init_service(func_send_feedcard, configs):
-        MediumService.send_msg = func_send_feedcard
-        print(configs)
+    def init_service(func_send_feedCard, configs):
+        MediumService.send_msg = func_send_feedCard
+        MediumService.sender = configs.get('medium', 'sender')
         MediumService.username = configs.get('medium', 'username')
         MediumService.password = configs.get('medium', 'password')
         MediumService.imap_url = configs.get('medium', 'imap_url')
         MediumService.start_time = configs.get('medium', 'start_time')
-        MediumService.repeat = bool(configs.get('medium', 'repeat'))
-        MediumService.cycle = int(configs.get('medium', 'cycle'))
+        try:
+            MediumService.repeat = bool(configs.get('medium', 'repeat'))
+        except ValueError:
+            raise ValueError('repeat should be boolean, now is {}'.format(configs.get('medium', 'repeat')))
+        try:
+            MediumService.cycle = int(configs.get('medium', 'cycle'))
+        except ValueError:
+            raise ValueError('cycle should be int, now is {}'.format(configs.get('medium', 'cycle')))
         MediumService.end_time = configs.get('medium', 'end_time')
 
     @staticmethod
@@ -83,7 +89,7 @@ class MediumService(BaseScheduledService):
                         body = part.get_payload(decode=True).decode('utf-8')
                         break
             # Process the extracted information as needed
-            # Iterate over the parts of the email
+            # To iterate over the parts of the email
             soup = BeautifulSoup(body, 'html.parser')
             article_divs = soup.find_all('div',
                                          attrs={'style': 'overflow: hidden; margin-bottom: 20px; margin-top: 20px;'})
