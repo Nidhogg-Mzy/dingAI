@@ -25,7 +25,7 @@ class BaseScheduledService:
         raise NotImplementedError
 
     @staticmethod
-    def start_scheduler(repeat: bool, start_time: str, end_time=None, cycle=None):
+    def start_scheduler():
         """
         create a scheduler for the task.
         """
