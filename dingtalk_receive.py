@@ -8,7 +8,6 @@ import requests
 from flask import Flask, jsonify, make_response, request
 from services import SERVICES_MAP
 from services.medium_daily_push import MediumService
-import threading
 
 
 class Receive:
@@ -18,7 +17,6 @@ class Receive:
                  '只要你找我，我无时无刻不在', '我在想，你累不累，毕竟你在我心里跑一天了', '想我了，就直说嘛',
                  '我在想，用多少度的水泡你比较合适', '你看不出来吗，我在等你找我啊']
     app = Flask(__name__)
-    filename = 'config.ini'
     configs = configparser.ConfigParser()
     configs.read('config.ini')
 
@@ -33,7 +31,7 @@ class Receive:
           "sign":"xxxxxxxxxx"
         }
         @param header: the header of the received message
-        @return a bool if the sign is a validate sign
+        @return a bool if the sign is a valid sign
         """
         timestamp = header['timestamp']
         app_secret = 'this is a secret'
@@ -45,7 +43,7 @@ class Receive:
         return sign == header['sign']
 
     @staticmethod
-    def parse_msg(msgtype: str, msg: str, user_id: str, is_at_all=False):
+    def parse_msg(msgtype: str, msg: str, user_id: str, is_at_all: bool = False):
         """
         format of text message sent
         {
@@ -65,24 +63,11 @@ class Receive:
         }
         """
         data = {}
-        if msgtype == 'text':
-            data = {
-                "text": {
-                    "content": msg
-                },
-                "msgtype": msgtype,
-                "at": {
-                    "atUserIds": [
-                        user_id
-                    ],
-                    "isAtAll": is_at_all
-                }
-            }
-        elif msgtype == 'markdown':
+        if msgtype in ['text', 'markdown']:
             data = {
                 "msgtype": "markdown",
                 "markdown": {
-                    "title": "回复消息",
+                    "title": "DingAI消息",
                     "text": msg
                 },
                 "at": {
@@ -152,25 +137,21 @@ class Receive:
         else:
             try:
                 service = SERVICES_MAP[message_parts[0]]
-                service.load_config(Receive.configs)
-                return_msg = Receive.parse_msg(msgtype='markdown', user_id=user_id,
-                                               msg=service.process_query(message_parts, user_id))
             except KeyError:
                 return_msg = Receive.parse_msg(msgtype='markdown', user_id=user_id,
                                                msg="We currently do not support this kind of service")
+            else:
+                service.load_config(Receive.configs)
+                return_msg = Receive.parse_msg(msgtype='markdown', user_id=user_id,
+                                               msg=service.process_query(message_parts, user_id))
         response = make_response(jsonify(return_msg))
         response.headers['Content-Type'] = 'application/json'
         return response
 
 
 if __name__ == '__main__':
-    medium_thread = threading.Thread(target=lambda: (
-        MediumService.init_service(Receive.send_feedcard_msg, Receive.configs),
-        print('medium service initialized'),
-        MediumService.start_scheduler()
-    ))
-    receive_thread = threading.Thread(target=lambda: Receive.app.run('0.0.0.0', 60001))
-    medium_thread.start()
-    receive_thread.start()
-    medium_thread.join()
-    receive_thread.join()
+    MediumService.init_service(Receive.send_feedcard_msg, Receive.configs),
+    scheduler = MediumService.create_scheduler()
+    scheduler.start()
+
+    Receive.app.run('0.0.0.0', 60001)

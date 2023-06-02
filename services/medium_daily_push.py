@@ -5,7 +5,7 @@ import re
 import configparser
 from datetime import datetime, timedelta
 from typing import List, Optional, Callable
-from apscheduler.schedulers.blocking import BlockingScheduler
+from apscheduler.schedulers.background import BackgroundScheduler
 from bs4 import BeautifulSoup
 from services.scheduled_base_service import BaseScheduledService
 
@@ -16,13 +16,13 @@ class MediumService(BaseScheduledService):
     """
     scheduler = None
     sender = None
-    send_msg: Optional[Callable[[List[str], List[str], List[str]], None]] = None
+    send_msg: Callable[[List[str], List[str], List[str]], None] = lambda *args: None
     username: Optional[str] = None
     password: Optional[str] = None
     imap_url: Optional[str] = None
-    repeat = None
-    start_time = None
-    cycle: Optional[str] = None
+    repeat: Optional[bool] = None
+    start_time: Optional[str] = None
+    cycle: Optional[int] = None
     end_time: Optional[str] = None
 
     @staticmethod
@@ -33,11 +33,8 @@ class MediumService(BaseScheduledService):
         return ''
 
     @staticmethod
-    def init_service(func_send_feedCard, configs):
-        """
-        this method is used to init some parameter when initializing the service
-        """
-        MediumService.send_msg = func_send_feedCard
+    def init_service(func_send, configs):
+        MediumService.send_msg = func_send
         MediumService.sender = configs.get('medium', 'sender')
         MediumService.username = configs.get('medium', 'username')
         MediumService.password = configs.get('medium', 'password')
@@ -45,33 +42,32 @@ class MediumService(BaseScheduledService):
         MediumService.start_time = configs.get('medium', 'start_time')
         try:
             MediumService.repeat = bool(configs.get('medium', 'repeat'))
-        except ValueError:
-            raise ValueError('repeat should be boolean, now is {}'.format(configs.get('medium', 'repeat')))
+        except ValueError as e:
+            raise ValueError(f'repeat should be boolean, now is {configs.get("medium", "repeat")}') from e
         try:
             MediumService.cycle = int(configs.get('medium', 'cycle'))
-        except ValueError:
-            raise ValueError('cycle should be int, now is {}'.format(configs.get('medium', 'cycle')))
+        except ValueError as e:
+            raise ValueError(f'cycle should be int, now is {configs.get("medium", "cycle")}') from e
         MediumService.end_time = configs.get('medium', 'end_time')
 
     @staticmethod
-    def start_scheduler():
+    def create_scheduler():
+        # return if the scheduler is already created
+        if MediumService.scheduler is not None:
+            return MediumService.scheduler
         # Create a scheduler
+        MediumService.scheduler = BackgroundScheduler()
         date_format = "%Y-%m-%d-%H:%M"
         start_date = datetime.strptime(MediumService.start_time, date_format)
         start = datetime.now() if start_date < datetime.now() else start_date
         end = datetime.strptime(MediumService.end_time, date_format)
-        if MediumService.scheduler is None:
-            MediumService.scheduler = BlockingScheduler()
 
         cycle_interval = MediumService.cycle * 24 * 60 * 60  # Cycle interval in seconds
 
         MediumService.scheduler.add_job(MediumService.task, 'interval', seconds=cycle_interval,
                                         start_date=start,
                                         end_date=end)
-
-        # Start the scheduler if it is not already running
-        if not MediumService.scheduler.running:
-            MediumService.scheduler.start()
+        return MediumService.scheduler
 
     @staticmethod
     def task():
@@ -92,7 +88,13 @@ class MediumService(BaseScheduledService):
         for message_id in message_ids[0].split():
             _, email_data = imap_server.fetch(message_id, '(RFC822)')
             # Parse the email_data using the email module
-            raw_email = email_data[0][1]
+            try:
+                raw_email = email_data[0][1]
+            except IndexError as e:
+                # clean up the connection on error
+                imap_server.close()
+                imap_server.logout()
+                raise IndexError('IndexError: email_data[0][1] index out of range') from e
             body = ''
             email_message = email.message_from_bytes(raw_email)
             if email_message.is_multipart():
@@ -105,7 +107,7 @@ class MediumService(BaseScheduledService):
             soup = BeautifulSoup(body, 'html.parser')
             article_divs = soup.find_all('div',
                                          attrs={'style': 'overflow: hidden; margin-bottom: 20px; margin-top: 20px;'})
-            for i, article_div in enumerate(article_divs):
+            for article_div in article_divs:
                 image_div = article_div.select(
                     '[style^="width: 100%; float: left; height: 214px; margin-bottom: 16px;"]')
                 if not len(image_div) == 0:
