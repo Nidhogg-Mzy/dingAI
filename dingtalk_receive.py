@@ -8,7 +8,6 @@ import requests
 from flask import Flask, jsonify, make_response, request
 from services import SERVICES_MAP
 from services.medium_daily_push import MediumService
-import threading
 
 
 class Receive:
@@ -64,24 +63,11 @@ class Receive:
         }
         """
         data = {}
-        if msgtype == 'text':
-            data = {
-                "text": {
-                    "content": msg
-                },
-                "msgtype": msgtype,
-                "at": {
-                    "atUserIds": [
-                        user_id
-                    ],
-                    "isAtAll": is_at_all
-                }
-            }
-        elif msgtype == 'markdown':
+        if msgtype in ['text', 'markdown']:
             data = {
                 "msgtype": "markdown",
                 "markdown": {
-                    "title": "回复消息",
+                    "title": "DingAI消息",
                     "text": msg
                 },
                 "at": {
@@ -164,13 +150,8 @@ class Receive:
 
 
 if __name__ == '__main__':
-    medium_thread = threading.Thread(target=lambda: (
-        MediumService.init_service(Receive.send_feedcard_msg, Receive.configs),
-        print('medium service initialized'),
-        MediumService.start_scheduler()
-    ))
-    receive_thread = threading.Thread(target=lambda: Receive.app.run('0.0.0.0', 60001))
-    medium_thread.start()
-    receive_thread.start()
-    medium_thread.join()
-    receive_thread.join()
+    MediumService.init_service(Receive.send_feedcard_msg, Receive.configs),
+    scheduler = MediumService.create_scheduler()
+    scheduler.start()
+
+    Receive.app.run('0.0.0.0', 60001)
