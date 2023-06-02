@@ -11,6 +11,9 @@ from services.scheduled_base_service import BaseScheduledService
 
 
 class MediumService(BaseScheduledService):
+    """
+    This class is the service that push medium daily digest.
+    """
     scheduler = None
     sender = None
     send_msg: Optional[Callable[[List[str], List[str], List[str]], None]] = None
@@ -24,10 +27,16 @@ class MediumService(BaseScheduledService):
 
     @staticmethod
     def process_query(query: List[str], user_id: str) -> str:
+        """
+        this method is leave for further use to modify the service start_time, end_time and cycle via dingtalk
+        """
         return ''
 
     @staticmethod
     def init_service(func_send_feedCard, configs):
+        """
+        this method is used to init some parameter when initializing the service
+        """
         MediumService.send_msg = func_send_feedCard
         MediumService.sender = configs.get('medium', 'sender')
         MediumService.username = configs.get('medium', 'username')
@@ -66,6 +75,9 @@ class MediumService(BaseScheduledService):
 
     @staticmethod
     def task():
+        """
+        this method is the task of getting today's medium email and extract the data we want
+        """
         to_date = datetime.now()
         from_date = to_date - timedelta(days=1)
         to_date = to_date.strftime("%d-%b-%Y")
@@ -116,10 +128,17 @@ class MediumService(BaseScheduledService):
 
     @staticmethod
     def get_help() -> str:
+        """
+        this method is leave for further use to get help from service when user try to use process query
+        from dingtalk
+        """
         return ''
 
     @staticmethod
     def open_connection():
+        """
+        this method is used to open connection to gmail imap server
+        """
         connection = imaplib.IMAP4_SSL(MediumService.imap_url)
         connection.login(MediumService.username, MediumService.password)
         connection.select('Inbox')
