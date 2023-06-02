@@ -16,7 +16,7 @@ class MediumService(BaseScheduledService):
     """
     scheduler = None
     sender = None
-    send_msg: Optional[Callable[[List[str], List[str], List[str]], None]] = None
+    send_msg: Callable[[List[str], List[str], List[str]], None] = lambda *args: None
     username: Optional[str] = None
     password: Optional[str] = None
     imap_url: Optional[str] = None
@@ -33,8 +33,8 @@ class MediumService(BaseScheduledService):
         return ''
 
     @staticmethod
-    def init_service(func_send_feedcard, configs):
-        MediumService.send_msg = func_send_feedcard
+    def init_service(func_send, configs):
+        MediumService.send_msg = func_send
         MediumService.sender = configs.get('medium', 'sender')
         MediumService.username = configs.get('medium', 'username')
         MediumService.password = configs.get('medium', 'password')
@@ -42,12 +42,12 @@ class MediumService(BaseScheduledService):
         MediumService.start_time = configs.get('medium', 'start_time')
         try:
             MediumService.repeat = bool(configs.get('medium', 'repeat'))
-        except ValueError:
-            raise ValueError('repeat should be boolean, now is {}'.format(configs.get('medium', 'repeat')))
+        except ValueError as e:
+            raise ValueError(f'repeat should be boolean, now is {configs.get("medium", "repeat")}') from e
         try:
             MediumService.cycle = int(configs.get('medium', 'cycle'))
-        except ValueError:
-            raise ValueError('cycle should be int, now is {}'.format(configs.get('medium', 'cycle')))
+        except ValueError as e:
+            raise ValueError(f'cycle should be int, now is {configs.get("medium", "cycle")}') from e
         MediumService.end_time = configs.get('medium', 'end_time')
 
     @staticmethod
@@ -90,11 +90,11 @@ class MediumService(BaseScheduledService):
             # Parse the email_data using the email module
             try:
                 raw_email = email_data[0][1]
-            except IndexError:
+            except IndexError as e:
                 # clean up the connection on error
                 imap_server.close()
                 imap_server.logout()
-                raise IndexError('IndexError: email_data[0][1] index out of range')
+                raise IndexError('IndexError: email_data[0][1] index out of range') from e
             body = ''
             email_message = email.message_from_bytes(raw_email)
             if email_message.is_multipart():
@@ -107,7 +107,7 @@ class MediumService(BaseScheduledService):
             soup = BeautifulSoup(body, 'html.parser')
             article_divs = soup.find_all('div',
                                          attrs={'style': 'overflow: hidden; margin-bottom: 20px; margin-top: 20px;'})
-            for i, article_div in enumerate(article_divs):
+            for article_div in article_divs:
                 image_div = article_div.select(
                     '[style^="width: 100%; float: left; height: 214px; margin-bottom: 16px;"]')
                 if not len(image_div) == 0:
