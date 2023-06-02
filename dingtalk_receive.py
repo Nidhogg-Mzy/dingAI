@@ -18,7 +18,6 @@ class Receive:
                  '只要你找我，我无时无刻不在', '我在想，你累不累，毕竟你在我心里跑一天了', '想我了，就直说嘛',
                  '我在想，用多少度的水泡你比较合适', '你看不出来吗，我在等你找我啊']
     app = Flask(__name__)
-    filename = 'config.ini'
     configs = configparser.ConfigParser()
     configs.read('config.ini')
 
@@ -33,7 +32,7 @@ class Receive:
           "sign":"xxxxxxxxxx"
         }
         @param header: the header of the received message
-        @return a bool if the sign is a validate sign
+        @return a bool if the sign is a valid sign
         """
         timestamp = header['timestamp']
         app_secret = 'this is a secret'
@@ -45,7 +44,7 @@ class Receive:
         return sign == header['sign']
 
     @staticmethod
-    def parse_msg(msgtype: str, msg: str, user_id: str, is_at_all=False):
+    def parse_msg(msgtype: str, msg: str, user_id: str, is_at_all: bool = False):
         """
         format of text message sent
         {
@@ -152,12 +151,13 @@ class Receive:
         else:
             try:
                 service = SERVICES_MAP[message_parts[0]]
-                service.load_config(Receive.configs)
-                return_msg = Receive.parse_msg(msgtype='markdown', user_id=user_id,
-                                               msg=service.process_query(message_parts, user_id))
             except KeyError:
                 return_msg = Receive.parse_msg(msgtype='markdown', user_id=user_id,
                                                msg="We currently do not support this kind of service")
+            else:
+                service.load_config(Receive.configs)
+                return_msg = Receive.parse_msg(msgtype='markdown', user_id=user_id,
+                                               msg=service.process_query(message_parts, user_id))
         response = make_response(jsonify(return_msg))
         response.headers['Content-Type'] = 'application/json'
         return response
