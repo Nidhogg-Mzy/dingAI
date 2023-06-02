@@ -156,7 +156,8 @@ class Receive:
                 return_msg = Receive.parse_msg(msgtype='markdown', user_id=user_id,
                                                msg=service.process_query(message_parts, user_id))
             except KeyError:
-                return_msg = "We currently do not support this kind of service"
+                return_msg = Receive.parse_msg(msgtype='markdown', user_id=user_id,
+                                               msg="We currently do not support this kind of service")
         response = make_response(jsonify(return_msg))
         response.headers['Content-Type'] = 'application/json'
         return response
@@ -166,7 +167,7 @@ if __name__ == '__main__':
     medium_thread = threading.Thread(target=lambda: (
         MediumService.init_service(Receive.send_feedcard_msg, Receive.configs),
         print('medium service initialized'),
-        MediumService.start_scheduler(repeat=True, start_time='2023-5-31', end_time='2100-1-1', cycle=1)
+        MediumService.start_scheduler()
     ))
     receive_thread = threading.Thread(target=lambda: Receive.app.run('0.0.0.0', 60001))
     medium_thread.start()
