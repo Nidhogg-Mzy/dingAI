@@ -1,5 +1,5 @@
-from typing import List
-
+from typing import List, Callable
+from apscheduler.schedulers.background import BackgroundScheduler
 
 class BaseScheduledService:
     """
@@ -8,10 +8,17 @@ class BaseScheduledService:
     """
 
     @staticmethod
-    def init_service(func_send, configs) -> None:
+    def init_service(func_send: Callable, configs: dict) -> None:
         """
-        takes in the specific send_msg function in receive class and extract info from configs
+        Initialize the service.
+
+        :param func_send: a function that sends message to user
+        :param configs: a dict that contains all the configs
+        :return: None
+        :raises ValueError: if the configs is invalid, which indicates a program bug.
         """
+        raise NotImplementedError
+
     @staticmethod
     def process_query(query: List[str], user_id: str) -> str:
         """
@@ -25,9 +32,12 @@ class BaseScheduledService:
         raise NotImplementedError
 
     @staticmethod
-    def start_scheduler():
+    def create_scheduler() -> BackgroundScheduler:
         """
-        create a scheduler for the task.
+        Create a scheduler for the task that is ready to be started.
+        If the scheduler is already created, return the existing scheduler.
+
+        :return: a BackgroundScheduler object, the initialized scheduler
         """
         raise NotImplementedError
 

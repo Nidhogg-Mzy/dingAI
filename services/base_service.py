@@ -16,6 +16,7 @@ class BaseService:
 
         :raises ValueError: if the config is invalid, which indicates a program bug.
         """
+        raise NotImplementedError
 
     @staticmethod
     def process_query(query: List[str], user_id: str) -> str:
