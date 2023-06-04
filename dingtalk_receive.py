@@ -132,7 +132,7 @@ class Receive:
         return parsed_msg
 
     @staticmethod
-    @app.route('/', methods=['POST', 'GET'])
+    @app.route('/', methods=['POST'])
     def message_process_tasks():
         """
         All private/group message processing are done here.
