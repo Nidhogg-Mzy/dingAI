@@ -3,6 +3,7 @@ import hashlib
 import hmac
 import json
 import random
+import logging
 import configparser
 import requests
 from flask import Flask, jsonify, make_response, request
@@ -150,7 +151,9 @@ class Receive:
 
 
 if __name__ == '__main__':
-    MediumService.init_service(Receive.send_feedcard_msg, Receive.configs),
+    logging.basicConfig()
+    logging.getLogger('apscheduler').setLevel(logging.DEBUG)
+    MediumService.init_service(Receive.send_feedcard_msg, Receive.configs)
     scheduler = MediumService.create_scheduler()
     scheduler.start()
 
