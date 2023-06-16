@@ -10,7 +10,7 @@ The configs should be self-explanatory.
 
 You can edit from the template we provided.
 ```bash
-cp config-template.json config.json
+cp config-template.json config.ini
 ```
 
 The config file should have such json structure.
@@ -50,6 +50,6 @@ pip install -r requirements.txt
 
 ### 3.2 Run the project
 ```bash
-python3 receive.py
+python3 qq_receive.py
 ```
 Details TBA.
