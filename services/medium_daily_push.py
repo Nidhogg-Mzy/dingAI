@@ -58,8 +58,7 @@ class MediumService(BaseScheduledService):
         # Create a scheduler
         MediumService.scheduler = BackgroundScheduler()
         date_format = "%Y-%m-%d-%H:%M"
-        start_date = datetime.strptime(MediumService.start_time, date_format)
-        start = datetime.now() if start_date < datetime.now() else start_date
+        start = datetime.strptime(MediumService.start_time, date_format)
         end = datetime.strptime(MediumService.end_time, date_format)
 
         cycle_interval = MediumService.cycle * 24 * 60 * 60  # Cycle interval in seconds
