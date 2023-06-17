@@ -3,7 +3,7 @@ import json
 import os
 import re
 import requests
-from typing import List, Iterable
+from typing import List, Tuple, Iterable
 
 from .base_service import BaseService
 
@@ -133,16 +133,25 @@ class GPTService(BaseService):
             all_files = os.listdir(user_folder)
             # use regex to filter all files in format (%d+)-(.*).json
             pattern = re.compile(r"(\d+)-(.*)\.json")
-            history_files: Iterable[str] = filter(pattern.match, all_files)
+            history_files: List[str] = list(filter(pattern.match, all_files))
 
-            hist_list = "Your chat histories:\n"
+            # if no history, return no hist msg
+            if len(history_files) == 0:
+                return "You don't have any chat history yet. "
+
+            hist_list_msg = "Your chat histories:\n"
+            hist_list: List[Tuple[int, str]] = []
             for history_file in history_files:
                 num, name = pattern.match(history_file).group(1), pattern.match(history_file).group(2)
+                hist_list.append((int(num), name))
+            # sort hist_list by num
+            hist_list.sort(key=lambda x: x[0])
+            for num, name in hist_list:
                 # Markdown ordered list style
-                hist_list += f'{num}. {name}\n'
+                hist_list_msg += f'{num}. {name}\n'
 
-            hist_list += "\nTo load a history, use `chatload <history number>`"
-            return hist_list
+            hist_list_msg += "\nTo load a history, use *chatload <history number>*"
+            return hist_list_msg
 
         elif query[0] == 'chatload':
             # load specific chat to temp.json
@@ -177,7 +186,7 @@ class GPTService(BaseService):
                 f.write(history_content)
             # prompt success, and display last query and answer
             last_query = json.loads(history_content)[-1]['content']
-            to_return = f'History {history_no} loaded successfully. The last message was: \n' \
+            to_return = f'History {history_no} loaded successfully. The last message was: \n\n ' \
                         f'**>** {last_query}\n'
 
             return to_return
@@ -244,15 +253,15 @@ class GPTService(BaseService):
                     f.write(temp.read())
 
             return f'Successfully saved current chat history as **{next_no}. {query[1]}**.' \
-                   'You can view all your chat histories using `chathistory`.'
+                   'You can view all your chat histories using *chathistory*.'
 
         elif query[0] == 'chatdiscard':
             cache_file = f'{GPTService._CACHE_FOLDER}/{user_id}/temp.json'
             if os.path.exists(cache_file):
                 os.remove(cache_file)
 
-            return 'Successfully **discarded** current chat session. However, if you loaded a chat history, ' \
-                   'it will still be there. You can delete it using `chatdelete <history no>`.'
+            return 'Successfully **discarded** current chat session. \n However, if you loaded a chat history, ' \
+                   'it will still be there. You can delete it using *chatdelete <history no>*.'
 
         # image function #
         # TODO: implement image function
@@ -260,20 +269,18 @@ class GPTService(BaseService):
 
     @staticmethod
     def get_help() -> str:
-        return '**GPTService is a service that uses ChatGPT-3.5 API provided by OpenAI to generate text.** \n ' \
+        return '**GPTService is a service that uses ChatGPT-3.5 API provided by OpenAI to generate text.** \n\n ' \
                '**[Basic Usage]** \n ' \
-               '- `chat <message>`: send <message> to GPT, and get the response.\n' \
+               '- *chat <message>*: send <message> to GPT, and get the response.\n' \
                '**[Manipulate history]** \n ' \
-               '- `chathistory` or `chathist`: list the history chats with GPT.\n' \
-               '- `chatload <history no>`: continue the corresponding history chat, <history no> can be ' \
-               'obtained by `chathistory`. *Notice that current chat session will be discarded.*\n' \
-               '- `chatdelete <history no>`: delete the given chat history.\n' \
+               '- *chathistory* or *chathist*: list the history chats with GPT.\n' \
+               '- *chatload <history no>*: continue the corresponding history chat, <history no> can be ' \
+               'obtained by *chathistory*. **Notice that current chat session will be discarded.**\n' \
+               '- *chatdelete <history no>*: delete the given chat history. \n\n ' \
                '**[Manipulate current session]** \n ' \
-               '- `chatsave <name>`: Quit current GPT session, and **save** chats history with given name.\n' \
-               '- `chatdiscard`: (Encouraged) Quit current GPT session, and **discard** current chat content. ' \
-               'However, if you want to delete a chat history, you need to use `chatdelete <history no>`. \n ' \
-               '**[Example]** \n ' \
-               '- chat who are you\n'
+               '- *chatsave <name>*: Quit current GPT session, and **save** chats history with given name.\n' \
+               '- *chatdiscard*: (Encouraged) Quit current GPT session, and **discard** current chat content. ' \
+               'However, if you want to delete a chat history, you need to use *chatdelete <history no>*. \n '
 
 
 if __name__ == '__main__':
