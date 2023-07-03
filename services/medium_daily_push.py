@@ -25,6 +25,7 @@ class MediumService(BaseScheduledService):
     start_time: Optional[str] = None
     cycle: Optional[int] = None
     end_time: Optional[str] = None
+    misfire_grace_time: int = 30
     webhooks: Optional[list[str]] = None
 
     @staticmethod
@@ -42,6 +43,7 @@ class MediumService(BaseScheduledService):
         MediumService.password = configs.get('medium', 'password')
         MediumService.imap_url = configs.get('medium', 'imap_url')
         MediumService.start_time = configs.get('medium', 'start_time')
+        MediumService.misfire_grace_time = int(configs.get('medium', 'misfire_grace_time'))
         MediumService.webhooks = json.loads(configs.get('medium', 'webhooks'))
         try:
             MediumService.repeat = bool(configs.get('medium', 'repeat'))
@@ -68,7 +70,8 @@ class MediumService(BaseScheduledService):
 
         MediumService.scheduler.add_job(MediumService.task, 'interval', seconds=cycle_interval,
                                         start_date=start,
-                                        end_date=end)
+                                        end_date=end,
+                                        misfire_grace_time=MediumService.misfire_grace_time)
         return MediumService.scheduler
 
     @staticmethod
