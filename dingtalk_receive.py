@@ -178,17 +178,15 @@ class Receive:
         print(requests.post(url, json=data, headers=headers, timeout=30).text)
 
     @staticmethod
-    def rev_msg():  # json or None
-        body = json.loads(request.data.decode('utf-8'))
-        parsed_msg = Receive.parse_body(body)
-        return parsed_msg
-
-    @staticmethod
     def parse_body(body) -> dict:
-        parsed_msg = {'message_type': body['msgtype'],
-                      'conversation_type': 'private' if body['conversationType'] == 1 else 'group',
-                      'msg': body['text']['content'], 'senderId': body['senderStaffId'],
-                      'sender_nick': body['senderNick']}
+        parsed_msg = {
+            'conversationId': body['conversationId'],
+            'message_type': body['msgtype'],
+            'conversation_type': 'private' if body['conversationType'] == 1 else 'group',
+            'msg': body['text']['content'],
+            'senderId': body['senderStaffId'],
+            'sender_nick': body['senderNick']
+        }
         return parsed_msg
 
     @staticmethod
@@ -197,31 +195,43 @@ class Receive:
         """
         All private/group message processing are done here.
         """
-        received = Receive.rev_msg()
+        body = json.loads(request.data.decode('utf-8'))
+        received = Receive.parse_body(body)
         return Receive.handle_reply(received)
 
     @staticmethod
-    def handle_reply(received):
-        user_id = received['senderId']
-        message_parts = received['msg'].strip().split(' ')
+    def handle_reply(received: dict) -> None:
+        """
+        Given a received message (parsed by `parse_body`), this function will reply the message
+        by calling DingTalk API.
+        """
+        user_id: str = received['senderId']
+        is_group: bool = received['conversation_type'] == 'group'
+        message_parts: list[str] = received['msg'].strip().split(' ')
+
         if len(message_parts) < 1:
-            return_msg = Receive.parse_msg(msgtype='markdown', user_id=user_id, msg='蛤?')
+            Receive.send_msg(msg='蛤?', open_conv_id=user_id,
+                             msg_key='sampleMarkdown', group_msg=is_group)
         elif message_parts[0] == '在吗':
-            return_msg = Receive.parse_msg(msgtype='markdown', user_id=user_id,
-                                           msg=Receive.reply_msg[random.randint(0, len(Receive.reply_msg) - 1)])
+            Receive.send_msg(msg=Receive.reply_msg[random.randint(0, len(Receive.reply_msg) - 1)],
+                             open_conv_id=user_id,
+                             msg_key='sampleMarkdown',
+                             group_msg=is_group)
         else:
             try:
                 service = SERVICES_MAP[message_parts[0]]
             except KeyError:
-                return_msg = Receive.parse_msg(msgtype='markdown', user_id=user_id,
-                                               msg="We currently do not support this kind of service")
+                Receive.send_msg(msg='We currently do not support this kind of service',
+                                 open_conv_id=user_id,
+                                 msg_key='sampleMarkdown',
+                                 group_msg=is_group)
             else:
                 service.load_config(Receive.configs)
-                return_msg = Receive.parse_msg(msgtype='markdown', user_id=user_id,
-                                               msg=service.process_query(message_parts, user_id))
-        response = make_response(jsonify(return_msg))
-        response.headers['Content-Type'] = 'application/json'
-        return response
+                # TODO: support other types of messages
+                Receive.send_msg(msg=service.process_query(message_parts, user_id),
+                                 open_conv_id=user_id,
+                                 msg_key='sampleMarkdown',
+                                 group_msg=is_group)
 
 
 if __name__ == '__main__':
