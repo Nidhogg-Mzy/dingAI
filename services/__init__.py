@@ -1,4 +1,5 @@
 from .gpt import GPTService
+from .catering_service import CateringService
 
 SERVICES_MAP = {
     'chat': GPTService,
@@ -8,4 +9,7 @@ SERVICES_MAP = {
     'chatdelete': GPTService,
     'chatsave': GPTService,
     'chatdiscard': GPTService,
+    'cater': CateringService,
+    'Cater': CateringService,
+    'catering': CateringService
 }
