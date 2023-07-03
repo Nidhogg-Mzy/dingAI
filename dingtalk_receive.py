@@ -7,7 +7,7 @@ import logging
 import configparser
 import requests
 from datetime import datetime, timedelta
-from typing import Literal, Optional
+from typing import Literal, Optional, Union
 from flask import Flask, jsonify, make_response, request
 from services import SERVICES_MAP
 from services.medium_daily_push import MediumService
@@ -114,26 +114,36 @@ class Receive:
 
     @staticmethod
     def send_msg(msg: str,
-                 open_conv_id: str,
                  msg_key: Literal["sampleText", "sampleMarkdown"] = 'sampleMarkdown',
-                 group_msg: bool = False) -> None:
+                 auth_info: dict[str, Union[str, list[str]]] = {}) -> None:
         """
         This function sends a message to the user, either in private or group chat.
+        
+        :param msg: the message to be sent
+        :param msg_key: the type of the message, default is 'sampleMarkdown'
+        :param auth_info: the auth info. For a private chat, it should be 
+            {'robotCode': 'robot_code', 'userIds': ['user_id1', 'user_id2']}.
+            For a group chat, it should be {'openConversationId': 'open_conversation_id'}
 
-        doc: https://open.dingtalk.com/document/isvapp/the-robot-sends-ordinary-messages-in-a-person-to-person-conversation
+        doc: https://open.dingtalk.com/document/isvapp/send-single-chat-messages-in-bulk
         doc: https://open.dingtalk.com/document/isvapp/bots-send-group-chat-messages
         {
           "msgParam" : "String",
           "msgKey" : "String",
+          # group chat
           "openConversationId" : "String",
+          # private chat
+          "robotCode" : "String",
+          "userIds" : Array[String]
         }
         """# noqa
-        base_url = 'https://api.dingtalk.com/v1.0/robot/{}/send'
-        url = base_url.format('groupMessages' if group_msg else 'privateChatMessages')
+        base_url = 'https://api.dingtalk.com/v1.0/robot/{}'
+        is_group_chat: bool = 'openConversationId' in auth_info
+        url = base_url.format('groupMessages/send' if is_group_chat else 'oToMessages/batchSend')
         payload = {
             "msgParam": Receive.generate_msg_param(msg_key, msg),
             "msgKey": msg_key,
-            "openConversationId": open_conv_id,
+            **auth_info
         }
         headers = {
             'Content-Type': 'application/json',
@@ -178,7 +188,7 @@ class Receive:
         print(requests.post(url, json=data, headers=headers, timeout=30).text)
 
     @staticmethod
-    def parse_body(body) -> dict:
+    def parse_body(body) -> (dict, dict):
         parsed_msg = {
             'conversationId': body['conversationId'],
             'message_type': body['msgtype'],
@@ -187,7 +197,13 @@ class Receive:
             'senderId': body['senderStaffId'],
             'sender_nick': body['senderNick']
         }
-        return parsed_msg
+        auth_info = {}
+        if parsed_msg['conversation_type'] == 'group':
+            auth_info['openConversationId'] = body['conversationId']
+        else:
+            auth_info['robotCode'] = body['robotCode']
+            auth_info['userIds'] = [parsed_msg['senderId']]
+        return parsed_msg, auth_info
 
     @staticmethod
     @app.route('/', methods=['POST'])
@@ -196,8 +212,8 @@ class Receive:
         All private/group message processing are done here.
         """
         body = json.loads(request.data.decode('utf-8'))
-        received = Receive.parse_body(body)
-        return Receive.handle_reply(received)
+        received, auth_info = Receive.parse_body(body)
+        return Receive.handle_reply(received, auth_info)
 
     @staticmethod
     def handle_reply(received: dict) -> None:
