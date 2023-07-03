@@ -6,6 +6,8 @@ import random
 import logging
 import configparser
 import requests
+from datetime import datetime, timedelta
+from typing import Literal, Optional
 from flask import Flask, jsonify, make_response, request
 from services import SERVICES_MAP
 from services.medium_daily_push import MediumService
@@ -20,6 +22,56 @@ class Receive:
     app = Flask(__name__)
     configs = configparser.ConfigParser()
     configs.read('config.ini')
+
+    class _AccessToken:
+        """
+        This class is used to get the access token of the robot.
+        """
+        app_key: str
+        app_secret: str
+        access_token: Optional[str]
+        expire_time: datetime
+
+        @classmethod    # use class method for better class variable reference
+        def init_token(cls, app_key: str, app_secret: str):
+            cls.app_key = app_key
+            cls.app_secret = app_secret
+            cls.access_token = None
+            cls.expire_time = datetime.now()
+
+        @classmethod
+        def get_access_token(cls) -> str:
+            """
+            Returns the `x-acs-dingtalk-access-token` of robot.
+            If current token is invalid, a new token will be fetched using AppKey and AppSecret.
+            doc: https://open.dingtalk.com/document/orgapp/obtain-the-access_token-of-an-internal-app?spm=ding_open_doc.document.0.0.263e1563MtqouX
+            
+            :return: the access token of the robot
+            :raises ValueError: if AppKey or AppSecret is not set, or failed to get access token
+                using the given AppKey and AppSecret
+            """# noqa
+            if cls.app_key is None or cls.app_secret is None:
+                raise ValueError('Please call init_token first.')
+
+            if cls.access_token is None or cls.expire_time is None or cls.expire_time < datetime.now():
+                url = f'https://api.dingtalk.com/v1.0/oauth2/accessToken'
+                payload = {
+                    'appKey': cls.app_key,
+                    'appSecret': cls.app_secret
+                }
+                response = requests.post(url, json=payload)
+                if response.status_code == 200:
+                    response_json = response.json()
+                    cls.access_token = response_json['accessToken']
+                    cls.expire_time = datetime.now() + timedelta(seconds=int(response_json['expireIn'])) \
+                                                     + timedelta(seconds=-60)   # some buffer time
+                else:
+                    raise ValueError(f'Failed to get access token: {response.json()}')
+            return cls.access_token
+
+    # this variable is strictly private for security reason
+    __access_token = _AccessToken()
+    __access_token.init_token(configs['dingtalk']['app_key'], configs['dingtalk']['app_secret'])
 
     @staticmethod
     def verify_sign(header: dict) -> bool:
