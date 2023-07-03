@@ -156,7 +156,8 @@ class Receive:
         return response.json()
 
     @staticmethod
-    def send_feedcard_msg(titles: list, message_urls: list, image_urls: list, webhooks: list):
+    def send_feedcard_msg(titles: list[str], message_urls: list[str],
+                          image_urls: list[str], webhooks: list[str]) -> dict[str, str]:
         """
         This function sends a feedcard message to the group chat.
         Notice that Webbook must be used in order to send feedcard-type messages.
@@ -167,6 +168,8 @@ class Receive:
         :param message_urls: a list of message urls of the feedcard
         :param image_urls: a list of image urls of the feedcard
         :param webhooks: a list of webhooks of all the groups that the message will be sent to
+
+        :return: a dict of responses of all the webhooks, key is the webhook, value is the response
         """
         result = []
         headers = {'Content-Type': 'application/json'}
@@ -186,9 +189,13 @@ class Receive:
                 "links": links
             }
         }
-        # TODO: support multiple webhooks
-        url = Receive.configs['dingtalk']['url']
-        print(requests.post(url, json=data, headers=headers, timeout=30).text)
+        responses = {}
+        for webhook in webhooks:
+            resp = requests.post(webhook, json=data, headers=headers, timeout=30)
+            responses['webhook'] = resp.json()
+
+        print(f'responses: {responses}')
+        return responses
 
     @staticmethod
     def parse_body(body) -> (dict, dict):

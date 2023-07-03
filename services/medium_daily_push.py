@@ -2,6 +2,7 @@ import datetime
 import email
 import imaplib
 import re
+import json
 import configparser
 from datetime import datetime, timedelta
 from typing import List, Optional, Callable
@@ -16,7 +17,7 @@ class MediumService(BaseScheduledService):
     """
     scheduler = None
     sender = None
-    send_msg: Callable[[List[str], List[str], List[str]], None] = lambda *args: None
+    send_msg: Callable[[List[str], List[str], List[str], List[str]], None] = lambda *args: None
     username: Optional[str] = None
     password: Optional[str] = None
     imap_url: Optional[str] = None
@@ -24,6 +25,7 @@ class MediumService(BaseScheduledService):
     start_time: Optional[str] = None
     cycle: Optional[int] = None
     end_time: Optional[str] = None
+    webhooks: Optional[list[str]] = None
 
     @staticmethod
     def process_query(query: List[str], user_id: str) -> str:
@@ -40,6 +42,7 @@ class MediumService(BaseScheduledService):
         MediumService.password = configs.get('medium', 'password')
         MediumService.imap_url = configs.get('medium', 'imap_url')
         MediumService.start_time = configs.get('medium', 'start_time')
+        MediumService.webhooks = json.loads(configs.get('medium', 'webhooks'))
         try:
             MediumService.repeat = bool(configs.get('medium', 'repeat'))
         except ValueError as e:
@@ -125,7 +128,7 @@ class MediumService(BaseScheduledService):
                 links.append(link)
         imap_server.close()
         imap_server.logout()
-        MediumService.send_msg(titles, links, image_urls)
+        MediumService.send_msg(titles, links, image_urls, MediumService.webhooks)
 
     @staticmethod
     def get_help() -> str:
