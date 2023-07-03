@@ -216,38 +216,33 @@ class Receive:
         return Receive.handle_reply(received, auth_info)
 
     @staticmethod
-    def handle_reply(received: dict) -> None:
+    def handle_reply(received: dict, auth_info: dict) -> None:
         """
         Given a received message (parsed by `parse_body`), this function will reply the message
         by calling DingTalk API.
         """
         user_id: str = received['senderId']
-        is_group: bool = received['conversation_type'] == 'group'
         message_parts: list[str] = received['msg'].strip().split(' ')
 
         if len(message_parts) < 1:
-            Receive.send_msg(msg='蛤?', open_conv_id=user_id,
-                             msg_key='sampleMarkdown', group_msg=is_group)
+            Receive.send_msg(msg='蛤?', msg_key='sampleMarkdown', auth_info=auth_info)
         elif message_parts[0] == '在吗':
             Receive.send_msg(msg=Receive.reply_msg[random.randint(0, len(Receive.reply_msg) - 1)],
-                             open_conv_id=user_id,
                              msg_key='sampleMarkdown',
-                             group_msg=is_group)
+                             auth_info=auth_info)
         else:
             try:
                 service = SERVICES_MAP[message_parts[0]]
             except KeyError:
                 Receive.send_msg(msg='We currently do not support this kind of service',
-                                 open_conv_id=user_id,
                                  msg_key='sampleMarkdown',
-                                 group_msg=is_group)
+                                 auth_info=auth_info)
             else:
                 service.load_config(Receive.configs)
                 # TODO: support other types of messages
                 Receive.send_msg(msg=service.process_query(message_parts, user_id),
-                                 open_conv_id=user_id,
                                  msg_key='sampleMarkdown',
-                                 group_msg=is_group)
+                                 auth_info=auth_info)
 
 
 if __name__ == '__main__':
