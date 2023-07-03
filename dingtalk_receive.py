@@ -96,44 +96,65 @@ class Receive:
         return sign == header['sign']
 
     @staticmethod
-    def parse_msg(msgtype: str, msg: str, user_id: str, is_at_all: bool = False):
+    def generate_msg_param(msg_key: Literal["sampleText", "sampleMarkdown"], msg: str) -> str:
+        # TODO: user_id and at_all function?
         """
-        format of text message sent
-        {
-            "at": {
-                "atMobiles":[
-                    "180xxxxxx"
-                ],
-                "atUserIds":[
-                    "user123"
-                ],
-                "isAtAll": false
-            },
-            "text": {
-                "content":"我就是我, @XXX 是不一样的烟火"
-            },
-            "msgtype":"text"
-        }
+        This function generates the msg_param for sending message.
+
+        doc: https://open.dingtalk.com/document/isvapp/bots-send-group-chat-messages
         """
-        data = {}
-        if msgtype in ['text', 'markdown']:
-            data = {
-                "msgtype": "markdown",
-                "markdown": {
-                    "title": "DingAI消息",
-                    "text": msg
-                },
-                "at": {
-                    "atUserIds": [
-                        user_id
-                    ],
-                    "isAtAll": is_at_all
-                }
+        msg_param = {}
+        if msg_key in ['sampleText', 'sampleMarkdown']:
+            msg_param = {
+                "title": "DingAI消息",
+                "text": msg,
             }
-        return data
+        # TODO: more supported msg_key
+        return str(msg_param)
 
     @staticmethod
-    def send_feedcard_msg(titles: list, message_urls: list, image_urls: list):
+    def send_msg(msg: str,
+                 open_conv_id: str,
+                 msg_key: Literal["sampleText", "sampleMarkdown"] = 'sampleMarkdown',
+                 group_msg: bool = False) -> None:
+        """
+        This function sends a message to the user, either in private or group chat.
+
+        doc: https://open.dingtalk.com/document/isvapp/the-robot-sends-ordinary-messages-in-a-person-to-person-conversation
+        doc: https://open.dingtalk.com/document/isvapp/bots-send-group-chat-messages
+        {
+          "msgParam" : "String",
+          "msgKey" : "String",
+          "openConversationId" : "String",
+        }
+        """# noqa
+        base_url = 'https://api.dingtalk.com/v1.0/robot/{}/send'
+        url = base_url.format('groupMessages' if group_msg else 'privateChatMessages')
+        payload = {
+            "msgParam": Receive.generate_msg_param(msg_key, msg),
+            "msgKey": msg_key,
+            "openConversationId": open_conv_id,
+        }
+        headers = {
+            'Content-Type': 'application/json',
+            'x-acs-dingtalk-access-token': Receive.__access_token.get_access_token()
+        }
+        response = requests.post(url, json=payload, headers=headers)
+        print(response.json())
+
+    @staticmethod
+    def send_feedcard_msg(titles: list, message_urls: list, image_urls: list, webhooks: list):
+        """
+        This function sends a feedcard message to the group chat.
+        Notice that Webbook must be used in order to send feedcard-type messages.
+
+        doc: https://open.dingtalk.com/document/orgapp/robot-message-types-and-data-format
+
+        :param titles: a list of titles of the feedcard
+        :param message_urls: a list of message urls of the feedcard
+        :param image_urls: a list of image urls of the feedcard
+        :param webhooks: a list of webhooks of all the groups that the message will be sent to
+        """
         result = []
         headers = {'Content-Type': 'application/json'}
         for title, message_url, image_url in zip(titles, message_urls, image_urls):
@@ -152,6 +173,7 @@ class Receive:
                 "links": links
             }
         }
+        # TODO: support multiple webhooks
         url = Receive.configs['dingtalk']['url']
         print(requests.post(url, json=data, headers=headers, timeout=30).text)
 
