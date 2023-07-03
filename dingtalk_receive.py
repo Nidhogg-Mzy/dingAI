@@ -121,9 +121,11 @@ class Receive:
         
         :param msg: the message to be sent
         :param msg_key: the type of the message, default is 'sampleMarkdown'
-        :param auth_info: the auth info. For a private chat, it should be 
-            {'robotCode': 'robot_code', 'userIds': ['user_id1', 'user_id2']}.
-            For a group chat, it should be {'openConversationId': 'open_conversation_id'}
+        :param auth_info: the auth info. 
+            For a private chat, it should be 
+            <code>{'robotCode': 'robot_code', 'userIds': ['user_id1', 'user_id2']}</code>.
+            For a group chat, it should be 
+            <code>{'robotCode': 'robot_code', 'openConversationId': 'open_conversation_id'}</code>.
 
         doc: https://open.dingtalk.com/document/isvapp/send-single-chat-messages-in-bulk
         doc: https://open.dingtalk.com/document/isvapp/bots-send-group-chat-messages
@@ -132,11 +134,12 @@ class Receive:
           "msgKey" : "String",
           # group chat
           "openConversationId" : "String",
-          # private chat
           "robotCode" : "String",
-          "userIds" : Array[String]
+          # private chat
+          "userIds" : Array[String],
+          "robotCode" : "String",
         }
-        """# noqa
+        """  # noqa
         base_url = 'https://api.dingtalk.com/v1.0/robot/{}'
         is_group_chat: bool = 'openConversationId' in auth_info
         url = base_url.format('groupMessages/send' if is_group_chat else 'oToMessages/batchSend')
@@ -192,16 +195,15 @@ class Receive:
         parsed_msg = {
             'conversationId': body['conversationId'],
             'message_type': body['msgtype'],
-            'conversation_type': 'private' if body['conversationType'] == 1 else 'group',
+            'conversation_type': 'private' if body['conversationType'] == '1' else 'group',
             'msg': body['text']['content'],
             'senderId': body['senderStaffId'],
             'sender_nick': body['senderNick']
         }
-        auth_info = {}
+        auth_info = {'robotCode': body['robotCode']}
         if parsed_msg['conversation_type'] == 'group':
             auth_info['openConversationId'] = body['conversationId']
         else:
-            auth_info['robotCode'] = body['robotCode']
             auth_info['userIds'] = [parsed_msg['senderId']]
         return parsed_msg, auth_info
 
