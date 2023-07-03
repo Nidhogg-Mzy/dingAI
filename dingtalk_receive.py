@@ -115,7 +115,7 @@ class Receive:
     @staticmethod
     def send_msg(msg: str,
                  msg_key: Literal["sampleText", "sampleMarkdown"] = 'sampleMarkdown',
-                 auth_info: dict[str, Union[str, list[str]]] = {}) -> None:
+                 auth_info: dict[str, Union[str, list[str]]] = {}) -> str:
         """
         This function sends a message to the user, either in private or group chat.
         
@@ -150,7 +150,7 @@ class Receive:
             'x-acs-dingtalk-access-token': Receive.__access_token.get_access_token()
         }
         response = requests.post(url, json=payload, headers=headers)
-        print(response.json())
+        return response.json()
 
     @staticmethod
     def send_feedcard_msg(titles: list, message_urls: list, image_urls: list, webhooks: list):
@@ -216,7 +216,7 @@ class Receive:
         return Receive.handle_reply(received, auth_info)
 
     @staticmethod
-    def handle_reply(received: dict, auth_info: dict) -> None:
+    def handle_reply(received: dict, auth_info: dict) -> str:
         """
         Given a received message (parsed by `parse_body`), this function will reply the message
         by calling DingTalk API.
@@ -225,24 +225,23 @@ class Receive:
         message_parts: list[str] = received['msg'].strip().split(' ')
 
         if len(message_parts) < 1:
-            Receive.send_msg(msg='蛤?', msg_key='sampleMarkdown', auth_info=auth_info)
+            return Receive.send_msg(msg='蛤?', msg_key='sampleMarkdown', auth_info=auth_info)
         elif message_parts[0] == '在吗':
-            Receive.send_msg(msg=Receive.reply_msg[random.randint(0, len(Receive.reply_msg) - 1)],
-                             msg_key='sampleMarkdown',
-                             auth_info=auth_info)
+            return Receive.send_msg(msg=Receive.reply_msg[random.randint(0, len(Receive.reply_msg) - 1)],
+                                    msg_key='sampleMarkdown',
+                                    auth_info=auth_info)
+        try:
+            service = SERVICES_MAP[message_parts[0]]
+        except KeyError:
+            return Receive.send_msg(msg='We currently do not support this kind of service',
+                                    msg_key='sampleMarkdown',
+                                    auth_info=auth_info)
         else:
-            try:
-                service = SERVICES_MAP[message_parts[0]]
-            except KeyError:
-                Receive.send_msg(msg='We currently do not support this kind of service',
-                                 msg_key='sampleMarkdown',
-                                 auth_info=auth_info)
-            else:
-                service.load_config(Receive.configs)
-                # TODO: support other types of messages
-                Receive.send_msg(msg=service.process_query(message_parts, user_id),
-                                 msg_key='sampleMarkdown',
-                                 auth_info=auth_info)
+            service.load_config(Receive.configs)
+            # TODO: support other types of messages
+            return Receive.send_msg(msg=service.process_query(message_parts, user_id),
+                                    msg_key='sampleMarkdown',
+                                    auth_info=auth_info)
 
 
 if __name__ == '__main__':
