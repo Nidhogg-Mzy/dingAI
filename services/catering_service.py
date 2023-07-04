@@ -13,12 +13,10 @@ class CateringService(BaseService):
 
     @staticmethod
     def process_query(query: List[str], user_id: str) -> str:
-        if len(query) == 0:
-            raise ValueError('Invalid query: query length is 0, but is passed into CateringService')
-        if query[0] not in ['cater', 'catering', 'Cater']:
-            raise ValueError(f'Invalid query: query[0] = "{query[0]}", but is passed into CateringService')
         if len(query) > 1 and query[1] == 'help':
             return CateringService.get_help()
+        if len(query) == 1:
+            return CateringService.get_data('today')
         else:
             return CateringService.get_data(query[1])
 
@@ -45,4 +43,5 @@ class CateringService(BaseService):
 
 
 if __name__ == '__main__':
-    print(CateringService.get_help())
+    CateringService.url = 'http://localhost:60001/catering/'
+    print(CateringService.process_query(['catering'], user_id='qlrj2'))
