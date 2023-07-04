@@ -80,6 +80,9 @@ class Receive:
         """
         This function sends a message to the user, either in private or group chat.
         
+        doc: https://open.dingtalk.com/document/isvapp/send-single-chat-messages-in-bulk
+        doc: https://open.dingtalk.com/document/isvapp/bots-send-group-chat-messages
+        
         :param msg: the message to be sent
         :param msg_key: the type of the message, default is 'sampleMarkdown'
         :param auth_info: the auth info. 
@@ -87,25 +90,30 @@ class Receive:
             <code>{'robotCode': 'robot_code', 'userIds': ['user_id1', 'user_id2']}</code>.
             For a group chat, it should be 
             <code>{'robotCode': 'robot_code', 'openConversationId': 'open_conversation_id'}</code>.
-
-        doc: https://open.dingtalk.com/document/isvapp/send-single-chat-messages-in-bulk
-        doc: https://open.dingtalk.com/document/isvapp/bots-send-group-chat-messages
-        {
-          "msgParam" : "String",
-          "msgKey" : "String",
-          # group chat
-          "openConversationId" : "String",
-          "robotCode" : "String",
-          # private chat
-          "userIds" : Array[String],
-          "robotCode" : "String",
-        }
+        :return: the response of the request
         """  # noqa
         base_url = 'https://api.dingtalk.com/v1.0/robot/{}'
         is_group_chat: bool = 'openConversationId' in auth_info
         url = base_url.format('groupMessages/send' if is_group_chat else 'oToMessages/batchSend')
+
+        def generate_msg_param(_msg_key: Literal["sampleText", "sampleMarkdown"], _msg: str) -> str:
+            # TODO: user_id and at_all function?
+            """
+            This function generates the msg_param for sending message.
+
+            doc: https://open.dingtalk.com/document/isvapp/bots-send-group-chat-messages
+            """
+            msg_param = {}
+            if _msg_key in ['sampleText', 'sampleMarkdown']:
+                msg_param = {
+                    "title": "DingAI消息",
+                    "text": _msg,
+                }
+            # TODO: more supported msg_key
+            return str(msg_param)
+
         payload = {
-            "msgParam": Receive.generate_msg_param(msg_key, msg),
+            "msgParam": generate_msg_param(msg_key, msg),
             "msgKey": msg_key,
             **auth_info
         }
@@ -155,11 +163,17 @@ class Receive:
             resp = requests.post(webhook, json=data, headers=headers, timeout=30)
             responses['webhook'] = resp.json()
 
-        print(f'responses: {responses}')
         return responses
 
     @staticmethod
-    def parse_body(body) -> (dict, dict):
+    def parse_body(body: dict) -> (dict, dict):
+        """
+        This function parses the body of the request and returns the parsed message and auth info.
+
+        :param body: the body of the request
+        :return: a tuple of two dicts, which are parsed message and auth info respectively
+        :raises: ValueError if the body is not valid, like missing keys
+        """
         parsed_msg = {
             'conversationId': body['conversationId'],
             'message_type': body['msgtype'],
@@ -188,8 +202,12 @@ class Receive:
     @staticmethod
     def handle_reply(received: dict, auth_info: dict) -> str:
         """
-        Given a received message (parsed by `parse_body`), this function will reply the message
+        Given a received message, this function will reply the message
         by calling DingTalk API.
+
+        :param received: the received message parsed by <code>parse_body</code>
+        :param auth_info: the auth info
+        :return: the response of the request
         """
         user_id: str = received['senderId']
         message_parts: list[str] = received['msg'].strip().split(' ')
