@@ -13,11 +13,11 @@ from services.medium_daily_push import MediumService
 
 
 class Receive:
-    reply_msg = ['在的呀小可爱', '一直在的呀', '呜呜呜找人家什么事嘛', '我无处不在', 'always here', '在的呀',
-                 '在啊，你要跟我表白吗', '不要着急，小可爱正在赶来的路上，请准备好零食和饮料耐心等待哦', '有事起奏，无事退朝',
-                 '你先说什么事，我再决定在不在', '搁外面躲债呢，你啥事啊直接说', '在呢，PDD帮我砍一刀呗', '爱卿，何事',
-                 '只要你找我，我无时无刻不在', '我在想，你累不累，毕竟你在我心里跑一天了', '想我了，就直说嘛',
-                 '我在想，用多少度的水泡你比较合适', '你看不出来吗，我在等你找我啊']
+    MESSAGES = ['在的呀小可爱', '一直在的呀', '呜呜呜找人家什么事嘛', '我无处不在', 'always here', '在的呀',
+                '在啊，你要跟我表白吗', '不要着急，小可爱正在赶来的路上，请准备好零食和饮料耐心等待哦', '有事起奏，无事退朝',
+                '你先说什么事，我再决定在不在', '搁外面躲债呢，你啥事啊直接说', '在呢，PDD帮我砍一刀呗', '爱卿，何事',
+                '只要你找我，我无时无刻不在', '我在想，你累不累，毕竟你在我心里跑一天了', '想我了，就直说嘛',
+                '我在想，用多少度的水泡你比较合适', '你看不出来吗，我在等你找我啊']
     app = Flask(__name__)
     configs = configparser.ConfigParser()
     configs.read('config.ini')
@@ -53,12 +53,12 @@ class Receive:
                 raise ValueError('Please call init_token first.')
 
             if cls.access_token is None or cls.expire_time is None or cls.expire_time < datetime.now():
-                url = f'https://api.dingtalk.com/v1.0/oauth2/accessToken'
+                url = 'https://api.dingtalk.com/v1.0/oauth2/accessToken'
                 payload = {
                     'appKey': cls.app_key,
                     'appSecret': cls.app_secret
                 }
-                response = requests.post(url, json=payload)
+                response = requests.post(url, json=payload, timeout=20)
                 if response.status_code == 200:
                     response_json = response.json()
                     cls.access_token = response_json['accessToken']
@@ -72,11 +72,10 @@ class Receive:
     __access_token = _AccessToken()
     __access_token.init_token(configs['dingtalk']['app_key'], configs['dingtalk']['app_secret'])
 
-
     @staticmethod
     def send_msg(msg: str,
                  msg_key: Literal["sampleText", "sampleMarkdown"] = 'sampleMarkdown',
-                 auth_info: dict[str, Union[str, list[str]]] = {}) -> str:
+                 auth_info: Optional[dict[str, Union[str, list[str]]]] = None) -> str:
         """
         This function sends a message to the user, either in private or group chat.
         
@@ -92,10 +91,13 @@ class Receive:
             <code>{'robotCode': 'robot_code', 'openConversationId': 'open_conversation_id'}</code>.
         :return: the response of the request
         """  # noqa
+        if auth_info is None:
+            auth_info = {}
         base_url = 'https://api.dingtalk.com/v1.0/robot/{}'
         is_group_chat: bool = 'openConversationId' in auth_info
         url = base_url.format('groupMessages/send' if is_group_chat else 'oToMessages/batchSend')
 
+        # pylint: disable=invalid-name
         def generate_msg_param(_msg_key: Literal["sampleText", "sampleMarkdown"], _msg: str) -> str:
             # TODO: user_id and at_all function?
             """
@@ -121,7 +123,7 @@ class Receive:
             'Content-Type': 'application/json',
             'x-acs-dingtalk-access-token': Receive.__access_token.get_access_token()
         }
-        response = requests.post(url, json=payload, headers=headers)
+        response = requests.post(url, json=payload, headers=headers, timeout=20)
         return response.json()
 
     @staticmethod
@@ -214,8 +216,8 @@ class Receive:
 
         if len(message_parts) < 1:
             return Receive.send_msg(msg='蛤?', msg_key='sampleMarkdown', auth_info=auth_info)
-        elif message_parts[0] == '在吗':
-            return Receive.send_msg(msg=Receive.reply_msg[random.randint(0, len(Receive.reply_msg) - 1)],
+        if message_parts[0] == '在吗':
+            return Receive.send_msg(msg=Receive.MESSAGES[random.randint(0, len(Receive.MESSAGES) - 1)],
                                     msg_key='sampleMarkdown',
                                     auth_info=auth_info)
         try:
@@ -224,12 +226,12 @@ class Receive:
             return Receive.send_msg(msg='We currently do not support this kind of service',
                                     msg_key='sampleMarkdown',
                                     auth_info=auth_info)
-        else:
-            service.load_config(Receive.configs)
-            # TODO: support other types of messages
-            return Receive.send_msg(msg=service.process_query(message_parts, user_id),
-                                    msg_key='sampleMarkdown',
-                                    auth_info=auth_info)
+        # service found!
+        service.load_config(Receive.configs)
+        # TODO: support other types of messages
+        return Receive.send_msg(msg=service.process_query(message_parts, user_id),
+                                msg_key='sampleMarkdown',
+                                auth_info=auth_info)
 
 
 if __name__ == '__main__':
