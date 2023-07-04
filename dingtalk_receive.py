@@ -1,14 +1,13 @@
-import base64
-import hashlib
-import hmac
-import json
-import random
-import logging
 import configparser
-import requests
+import json
+import logging
+import random
 from datetime import datetime, timedelta
 from typing import Literal, Optional, Union
-from flask import Flask, jsonify, make_response, request
+
+import requests
+from flask import Flask, request
+
 from services import SERVICES_MAP
 from services.medium_daily_push import MediumService
 
@@ -73,44 +72,6 @@ class Receive:
     __access_token = _AccessToken()
     __access_token.init_token(configs['dingtalk']['app_key'], configs['dingtalk']['app_secret'])
 
-    @staticmethod
-    def verify_sign(header: dict) -> bool:
-        """
-        This function takes out the timestamp and verify the sign of the sender
-            structure of header:
-        {
-          "Content-Type": "application/json; charset=utf-8",
-          "timestamp": "1577262236757",
-          "sign":"xxxxxxxxxx"
-        }
-        @param header: the header of the received message
-        @return a bool if the sign is a valid sign
-        """
-        timestamp = header['timestamp']
-        app_secret = 'this is a secret'
-        app_secret_enc = app_secret.encode('utf-8')
-        string_to_sign = f'{timestamp}\n{app_secret}'
-        string_to_sign_enc = string_to_sign.encode('utf-8')
-        hmac_code = hmac.new(app_secret_enc, string_to_sign_enc, digestmod=hashlib.sha256).digest()
-        sign = base64.b64encode(hmac_code).decode('utf-8')
-        return sign == header['sign']
-
-    @staticmethod
-    def generate_msg_param(msg_key: Literal["sampleText", "sampleMarkdown"], msg: str) -> str:
-        # TODO: user_id and at_all function?
-        """
-        This function generates the msg_param for sending message.
-
-        doc: https://open.dingtalk.com/document/isvapp/bots-send-group-chat-messages
-        """
-        msg_param = {}
-        if msg_key in ['sampleText', 'sampleMarkdown']:
-            msg_param = {
-                "title": "DingAI消息",
-                "text": msg,
-            }
-        # TODO: more supported msg_key
-        return str(msg_param)
 
     @staticmethod
     def send_msg(msg: str,
